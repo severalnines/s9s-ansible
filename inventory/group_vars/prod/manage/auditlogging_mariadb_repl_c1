@@ -1,3 +1,9 @@
 cluster_name: "mariadb-replication-c1"
 cluster_type: "replication"
 wait_log: --wait --log
+rpc_user: myuser
+rpc_password: myuserpass
+# RPC V2 URL should have the v2/jobs as it's sub-directory in the URL. If you need to change the URL, likely you'll change only the IP address 
+## such as your hostname or any FQDN that points to the RPC V2 running in your CC Controller host. In this example, we're using localhost.
+rpc_v2_url: https://127.0.0.1:9501/v2/jobs
+#curl -k -XPOST "https://127.0.0.1:9501/v2/jobs" -d"{\"cluster_id\":87,\"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",\"job_spec\":{\"command\":\"setup_audit_logging\",\"job_data\":{\"action\": \"enable\",\"clusterId\": \"87\"}},\"title\":\"Setup audit Logging\"},\"authenticate\":{\"username\":\"myuser\",\"password\":\"myuserpass\"}}"

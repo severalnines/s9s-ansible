@@ -1,0 +1,6 @@
+cluster_name: "mongodb-mdbgrp"
+cluster_type: "mongodb"
+nodes:
+    - host: 192.168.40.53
+      port: 27017
+wait_log: "--wait --log"

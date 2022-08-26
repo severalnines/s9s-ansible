@@ -1,0 +1,60 @@
+-   name: Manage Audit Logging | Enable/Disable Audit Logging
+    hosts: "{{ environ }}"
+    connection: local
+    gather_facts: false
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/manage/{{ deploy_id|d('') }}
+
+    tasks:
+    -   set_fact:
+            enable_audit_logging: "{{ enable|d(true)|bool }}"
+
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Verifying cluster's existence...
+        ansible.builtin.debug:
+             msg: "Cluster ID was not extracted. Cluster does no longer exist..."
+        when: cluster_id is undefined
+
+    -   name: Showing debug command using RPC V2 to enable audit logging
+        debug: >-
+             msg='s9s cluster --setup-audit-logging --cluster-id={{ cluster_id }} {{ wait_log|d('') }}'
+        when: cluster_id|d(0)|int > 0 and enable_audit_logging|bool == true
+
+    -   name: Execute s9s CLI to enable audit logging
+        command: >-
+            s9s cluster --setup-audit-logging --cluster-id={{ cluster_id }} {{ wait_log|d('') }}
+        when: cluster_id|d(0)|int > 0 and enable_audit_logging|bool == true
+
+    -   name: Showing debug command using RPC V2 to disable audit logging
+        debug: >-
+             msg='curl -k -XPOST "https://127.0.0.1:9501/v2/jobs" -d"{\"cluster_id\": {{ cluster_id }},\"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\", \"job_spec\":{\"command\":\"setup_audit_logging\",\"job_data\":{\"action\": \"disable\",\"clusterId\": \"87\"}}, \"title\":\"Disable Audit Logging\"},\"authenticate\":{\"username\":\"myuser\",\"password\":\"myuserpass\"}}"'
+        when: cluster_id|d(0)|int > 0 and enable_audit_logging|bool == false
+
+    -   name: Execute s9s CLI to disable audit logging
+        command: >-
+            curl -sk -XPOST "https://127.0.0.1:9501/v2/jobs" 
+            -d"{\"cluster_id\":{{ cluster_id }},\"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+            \"job_spec\":{\"command\":\"setup_audit_logging\",\"job_data\":{\"action\": \"disable\",\"clusterId\": \"{{ cluster_id }}\"}},
+            \"title\":\"Disable Audit Logging\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",\"password\":\"{{ rpc_password }}\"}}"
+        args:
+            warn: false
+        when: cluster_id|d(0)|int > 0 and enable_audit_logging|bool == false

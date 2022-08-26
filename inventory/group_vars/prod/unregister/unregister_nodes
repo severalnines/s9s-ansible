@@ -1,0 +1,8 @@
+cluster_name: "mariadb-replication-c1"
+db_nodes:
+    - host: 192.168.40.20
+      port: 3306
+    - host: 192.168.40.21
+      port: 3306
+wait_log: "--wait --log"
+uninstall: true

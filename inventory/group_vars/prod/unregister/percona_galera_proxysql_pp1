@@ -1,0 +1,8 @@
+cluster_name: "percona-galera-pp1"
+cluster_type: "galera"
+nodes:
+    - host: 192.168.40.55
+      port: 6032
+    - host: 192.168.40.56
+      port: 6032
+wait_log: "--wait --log"

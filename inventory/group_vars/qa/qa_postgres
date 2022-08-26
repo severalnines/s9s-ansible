@@ -1,0 +1,16 @@
+os_user: "qapostgres1"
+os_key_file: "/home/vagrant/.ssh/id_rsa"
+cluster_name: "oracle-mysql8"
+cluster_type: "postgresql"
+vendor: "postgresql"
+version: "14"
+db_nodes:
+    - host: 192.168.40.20
+      port: 5432
+    - host: 192.168.40.21
+      port: 5432
+    - host: 192.168.40.22
+      port: 5432
+with_tags: "prod"
+wait_log: "--wait --log"
+prefix: "postgresql://"

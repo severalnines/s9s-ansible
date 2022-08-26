@@ -1,0 +1,3 @@
+cluster_name: "percona-galera-pp1"
+cluster_type: galera
+wait_log: "--wait --log"

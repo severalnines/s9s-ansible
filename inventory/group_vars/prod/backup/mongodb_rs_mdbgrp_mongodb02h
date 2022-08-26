@@ -1,0 +1,10 @@
+cluster_name: mongodb-mdbgrp
+cluster_type: mongodb
+backup_method: "mongodump"
+backup_directory: /home/vagrant/backups
+store_on_controller: true
+backup_schedule: 10 02 * * *
+backup_retention: 2
+node:
+    - host: 192.168.40.51
+      port: 27018

@@ -1,0 +1,4 @@
+cluster_name: "ms-sql-server-prod"
+cluster_type: mssql_ao_async 
+remove_backups: true
+wait_log: "--wait --log"

@@ -1,0 +1,11 @@
+cluster_name: "mysql-repl5.7"
+cluster_type: replication
+backup_method: "xtrabackupfull"
+backup_directory: /home/vagrant/backups
+store_on_controller: true
+backup_schedule: 16 07 * * *
+backup_retention: 2
+node:
+    - host: 192.168.40.62
+      port: 3306
+wait_log: '--wait --log'

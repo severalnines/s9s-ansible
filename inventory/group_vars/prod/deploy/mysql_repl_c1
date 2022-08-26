@@ -1,0 +1,17 @@
+cluster_name: "mysql-replication-c1"
+cluster_type: msqlreplication
+vendor: "oracle"
+version: "8.0"
+db_admin_user: root
+db_admin_password: mydbP@55w0rd
+db_nodes:
+    - host: 192.168.40.53
+      port: 3306
+      node_type: master
+    - host: 192.168.40.57
+      port: 3306
+      node_type: slave
+# cluster_tags should be comma delimited without any space in between
+cluster_tags: "prod,c1-group"
+wait_log: "--wait --log"
+prefix: "mysql://"

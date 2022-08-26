@@ -1,0 +1,36 @@
+cluster_name: "mysql-replication-c1"
+cluster_type: "replication"
+proxy_type: "haproxy"
+prefix: "haproxy://"
+proxy_hosts:
+    # - host: 192.168.40.23
+    #   ha_port: 8422
+    #   rw_splitting: true
+      # node_type: active
+      # backend_name_ro: haproxy_2208_ro
+      # backend_name_rw: haproxy_2207_rw
+      # lb_user: myhaproxyAdmin
+      # lb_password: lb_password
+      # node_addresses: 192.168.40.20:3306?active,192.168.40.21:3306?backup,192.168.40.22:3306?backup
+    - host: 192.168.40.57
+      ha_port: 8422
+      rw_splitting: true
+      # node_type: backup
+      # backend_name_ro: haproxy_2208_ro
+      # backend_name_rw: haproxy_2207_rw
+      # lb_user: myhaproxyAdmin
+      # lb_password: lb_password
+      # node_addresses: 192.168.40.20:3306?active,192.168.40.21:3306?backup,192.168.40.22:3306?backup
+    # - host: 192.168.40.22
+    #   ha_port: 8422
+    #   node_type: active
+    #   rw_splitting: true
+    #   node_type: backup
+      # backend_name_ro: haproxy_2208_ro
+      # backend_name_rw: haproxy_2207_rw
+      # lb_user: myhaproxyAdmin
+      # lb_password: lb_password
+      # node_addresses: 192.168.40.20:3306?active,192.168.40.21:3306?backup,192.168.40.22:3306?backup
+wait_log: "--wait --log"
+
+# s9s cluster --cluster-id=32 --add-node --nodes="haproxy://192.168.40.22:8422?backend_name_ro=haproxy_2208_ro&backend_name_rw=haproxy_2207_rw&lb_user=myhaproxyAdmin&lb_password=myhaproxyPass&rw_splitting=true&node_addresses=192.168.40.20:3306?active,192.168.40.21:3306?backup,192.168.40.22:3306?backup" --wait --log --print-request

@@ -1,0 +1,4 @@
+cluster_name: "percona-galera-pp1"
+cluster_type: "galera"
+remove_backups: true
+wait_log: "--wait --log"

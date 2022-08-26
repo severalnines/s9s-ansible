@@ -1,0 +1,9 @@
+cluster_name: "mysql-replication-c1"
+cluster_type: replication
+backup_method: "mysqldump"
+backup_directory: /home/vagrant/backups
+store_on_controller: false
+backup_schedule: 10 0 * * *
+node:
+    - host: 192.168.40.53
+      port: 3306

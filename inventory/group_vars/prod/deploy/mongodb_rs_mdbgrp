@@ -1,0 +1,17 @@
+cluster_name: "mongodb-mdbgrp"
+cluster_type: "mongodb"
+vendor: "percona"
+version: "4.4"
+db_admin_user: mongodbadmin
+db_admin_password: mongodbadmin
+db_nodes:
+    - host: 192.168.40.50
+      port: 27018
+    - host: 192.168.40.51
+      port: 27018
+    - host: 192.168.40.52
+      port: 27018
+# cluster_tags should be comma delimited without any space in between
+cluster_tags: "mdbgrp-group,main,prod1"
+wait_log: "--wait --log"
+prefix: "mongodb://"

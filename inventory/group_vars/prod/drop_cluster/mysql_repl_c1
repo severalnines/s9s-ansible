@@ -1,0 +1,4 @@
+cluster_name: "mysql-replication-c1"
+cluster_type: replication
+wait_log: "--wait --log"
+prefix: "mysql://"

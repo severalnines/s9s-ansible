@@ -1,0 +1,89 @@
+-   name: Manage Cluster Maintenance | Scheduling a maintenance
+    hosts: "{{ environ }}"
+    connection: local
+    gather_facts: false
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/manage/{{ deploy_id|d('') }}
+    tasks:
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Verifying cluster's existence...
+        ansible.builtin.debug:
+             msg: "Cluster ID was not extracted. Cluster does no longer exist..."
+        when: cluster_id is undefined
+
+    -   name: Check the list of nodes in the cluster
+        command:
+            cmd: 's9s node --list --long --cluster-id {{ cluster_id }} --batch --node-format="%A\n"'
+        when: cluster_id is defined
+        register: node_list
+
+    -   name: Check if the host/db nodes exist on this particular cluster
+        set_fact:
+            valid_play: true
+        when: >-
+             (maintenance_action|d('')|trim == "create_bynode" or maintenance_action|d('')|trim == "delete_bynode") and
+             cluster_id|default(0)|int != 0 and
+             item[1] is defined and item[1]|trim == item[0].host|trim 
+        with_nested:
+        - "{{ nodes }}"
+        - "{{ node_list.stdout_lines }}"
+
+    -   name: Validate target node information...
+        debug:
+             msg: "Cannot find nodes. Please verify if the database node belongs to the correct cluster {{ cluster_id|d(0) }}"
+        when: (maintenance_action|d('')|trim == "create_bynode" or maintenance_action|d('')|trim == "delete_bynode") and valid_play|d(false)|bool == false
+        
+    -   name: Set the retry count
+        set_fact:
+             retry_count: 0
+        when: (maintenance_action|d('')|trim == "create_bynode" or maintenance_action|d('')|trim == "delete_bynode") and valid_play|d(false)|bool == true
+
+    -   include_tasks: helpers/multi-node-schedule-bynode-maintenance.yml
+        when: >-
+            maintenance_action|d('')|trim == "create_bynode" and
+            retry_count | int < nodes|length and valid_play|d(false)|bool == true
+
+    -   include_tasks: helpers/multi-node-schedule-delbynode-maintenance.yml
+        when: >-
+            maintenance_action|d('')|trim == "delete_bynode" and
+            retry_count | int < nodes|length and valid_play|d(false)|bool == true
+
+    -   include_tasks: helpers/multi-node-schedule-delcluster-maintenance.yml
+        when: >-
+            maintenance_action|d('')|trim == "delete_cluster" and cluster_id|default(0)|int != 0 
+
+    -   include_tasks: helpers/multi-node-schedule-pernode-maintenance.yml
+        when: >-
+            maintenance_action|d('')|trim == "create_pernode" and
+            retry_count | int < nodes|length and valid_play|d(false)|bool == true
+
+    -   name: Debugging execution for cluster-wide maintenance
+        debug: >-
+             msg='s9s cluster --disable-recovery --cluster-id {{ cluster_id }}  
+             --maintenance-minutes {{ maintenance_window_time_in_minutes }} --reason {{ maintenance_reason }}'
+        when: maintenance_action|d('')|trim == "cluster_wide" and cluster_id|default(0)|int != 0
+
+    -   name: Execute s9s CLI to setup cluster-wide maintenance
+        command: >-
+            s9s cluster --disable-recovery --cluster-id {{ cluster_id }}  
+            --maintenance-minutes {{ maintenance_window_time_in_minutes }} --reason {{ maintenance_reason }}
+        when: maintenance_action|d('')|trim == "cluster_wide" and cluster_id|default(0)|int != 0

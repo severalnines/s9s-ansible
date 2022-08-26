@@ -1,0 +1,3 @@
+cluster_name: "mariadb-10.6-cluster"
+cluster_type: galera
+wait_log: "--wait --log"

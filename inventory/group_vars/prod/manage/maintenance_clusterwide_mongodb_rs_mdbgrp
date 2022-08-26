@@ -1,0 +1,18 @@
+cluster_name: "mongodb-mdbgrp"
+cluster_type: "mongodb"
+maintenance_window_time_in_minutes: 4320
+# valid maintenance_action: create_bynode, delete_bynode, delete_cluster, cluster_wide
+maintenance_action: cluster_wide
+## datetime format e.g. 2022-08-09T03:40:52.000Z
+maintenance_start_in_datetime_format:
+## datetime format e.g. 2022-08-09T03:55:52.000Z
+maintenance_end_in_datetime_format:
+maintenance_reason: "Maintenance mongodb cluster wide to apply system updates to all nodes"
+# nodes:
+#     - host: 192.168.40.50
+#     - host: 192.168.40.51
+#     - host: 192.168.40.52
+
+#  s9s maintenance --create --nodes="192.168.40.58" --start="2022-08-09T03:40:52.000Z" --end="2022-08-09T03:55:52.000Z" --reason="Memory upgrade."
+#
+# s9s cluster  --disable-recovery --wait --log  --cluster-id="82"  --maintenance-minutes="10"  --reason="testRecoveryJob"

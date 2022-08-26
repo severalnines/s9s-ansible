@@ -1,0 +1,8 @@
+cluster_name: "mysql-replication-c1"
+cluster_type: replication
+backup_title: BACKUP-80
+backup_id: 80
+node:
+    - host: 192.168.40.58
+      port: 3306
+wait_log: '--wait --log'

@@ -1,0 +1,41 @@
+-   name: Create cluster
+    hosts: 127.0.0.1
+    connection: local
+    vars:
+        os_user: "root"
+        os_key_file: "/root/.ssh/id_rsa"
+        cluster_name: "mycluster"
+        cluster_type: "mysql"
+        vendor: "percona"
+        version: "8.0"
+        nodes: "192.168.10.221:3306?master;192.168.10.222:3306?slave;192.168.10.223:3306?slave"
+
+    tasks:
+
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Find if cluster with a proper name exists
+        set_fact:
+            cluster_exists: 1
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   debug:
+            msg='s9s cluster --create --cluster-type={{ cluster_type }} --nodes="{{ nodes }}" --vendor={{ vendor }} --cluster-name={{ cluster_name }} --provider-version={{ version }} --os-user=root --os-key-file=/root/.ssh/id_rsa'
+        when: cluster_exists is undefined
+
+    -   name: Execute s9s CLI to create a cluster
+        command:
+            cmd: "s9s cluster --create --cluster-type={{ cluster_type }} --nodes=\"{{ nodes }}\" --vendor={{ vendor }} --cluster-name={{ cluster_name }} --provider-version={{ version }} --os-user={{ os_user }} --os-key-file={{ os_key_file }}"
+        when: cluster_exists is undefined

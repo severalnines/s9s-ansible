@@ -1,0 +1,10 @@
+cluster_name: "mariadb-10.6-cluster"
+cluster_type: "galera"
+backup_method: "mariabackupfull"
+backup_directory: /home/vagrant/backups
+store_on_controller: true
+backup_schedule: 10 18 * * *
+backup_retention: 2
+node:
+    - host: 192.168.40.51
+      port: 3306

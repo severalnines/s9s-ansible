@@ -1,0 +1,10 @@
+cluster_name: "mysql-replication-c1"
+cluster_type: "replication"
+proxy_type: "haproxy"
+prefix: "haproxy://"
+nodes:
+    - host: 192.168.40.57
+      port: 8422
+      rw_splitting: true
+wait_log: "--wait --log"
+uninstall: true

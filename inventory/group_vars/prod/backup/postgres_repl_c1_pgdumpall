@@ -1,0 +1,11 @@
+cluster_name: postgres-c1 
+cluster_type: postgres
+backup_method: pgdumpall
+backup_directory: /home/vagrant/backups
+store_on_controller: true
+backup_schedule: 16 07 * * *
+backup_retention: 2
+node:
+    - host: 192.168.40.53
+      port: 5432
+wait_log: '--wait --log'

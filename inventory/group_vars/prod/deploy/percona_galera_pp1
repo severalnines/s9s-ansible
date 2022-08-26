@@ -1,0 +1,18 @@
+cluster_name: "percona-galera-pp1"
+cluster_type: "galera"
+vendor: "percona"
+db_admin_user: root
+db_admin_password: mydbP@55w0rd
+version: "8.0"
+db_nodes:
+    - host: 192.168.40.55
+      port: 3306
+      node_type: master
+    - host: 192.168.40.56
+      port: 3306
+      node_type: master
+    - host: 192.168.40.57
+# cluster_tags should be comma delimited without any space in between
+cluster_tags: "prod,pp1,galera"
+wait_log: "--wait --log"
+prefix: "mysql://"

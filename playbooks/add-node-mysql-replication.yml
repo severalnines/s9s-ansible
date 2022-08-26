@@ -1,0 +1,75 @@
+-   name: Add Node To Existing Cluster | Deploy MySQL/Percona/MariaDB Replication Cluster
+    hosts: "{{ environ }}"
+    connection: local
+    gather_facts: false
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_{{ vendor|default('mysql') }}_repl
+
+    tasks:
+    -   set_fact:
+            vendor: "{{ vendor|default('mysql') }}"
+        
+    -   set_fact:
+           vendor_title: "{% if vendor=='mysql' %}Oracle MySQL{% elif vendor=='percona'%}Percona{% else %}MariaDB{% endif %}"
+
+    -   name: Check if {{ vendor_title }} replication cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"        
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Check the list of nodes in the cluster
+        command:
+            cmd: "s9s nodes --list --long --cluster-id={{ cluster_id }} "
+        when: cluster_id is defined
+        register: node_list
+
+    -   name: Check if the node to be added has already been deployed on the node
+        set_fact:
+            node_exist: 1
+            str_node_port: "{{ str_node_port|default('') }} {{ item[0].host|trim }}:{{item[0].port|default('3306')|trim}}"
+        when: >
+             item[1].split()[4] is defined and item[1].split()[4]|trim == item[0].host|trim and
+             item[1].split()[5] is defined and item[1].split()[5]|trim == item[0].port|default('3306')|trim
+        with_nested:
+        - "{{ proxy_hosts }}"
+        - "{{ node_list.stdout_lines }}"
+
+    -   name: Verify if MySQL Replication Cluster nodes should fail as host and port combination exist already
+        ansible.builtin.debug:
+             msg: "The host:port combination you have set already exist : {{ str_node_port }}. Cannot continue deploying. Remove existing nodes first."
+        when: node_exist is defined and cluster_id is defined
+
+    -   name: Separate the hosts via comma delimiter to allow multiple host deployments
+        set_fact:
+            fixed_nodes: "{{fixed_nodes | default('')}}{{ prefix }}{{ item.host }}:{{ item.port }}?{{ item.node_type }};"
+        loop: "{{ db_nodes }}"
+        when: node_exist is undefined and cluster_id is defined
+
+
+    -   debug: >-
+            msg='s9s cluster --add-node --cluster-type={{ cluster_type }} --nodes="{{ fixed_nodes }}"
+             --vendor={{ vendor }} --provider-version={{ version }}
+             --os-user={{ os_user }} --os-key-file={{ os_key_file }} {{ wait_log|d('') }} --cluster-id={{ cluster_id }}'
+        when: node_exist is undefined and cluster_id is defined
+
+    -   name: Execute s9s CLI to create a cluster
+        command: >-
+            s9s cluster --add-node --cluster-type={{ cluster_type }} --nodes="{{ fixed_nodes }}"
+             --vendor={{ vendor }} --provider-version={{ version }}
+             --os-user={{ os_user }} --os-key-file={{ os_key_file }} {{ wait_log|d('') }} --cluster-id={{ cluster_id }}
+        when: node_exist is undefined and cluster_id is defined

@@ -1,0 +1,4 @@
+cluster_name: "redis-sentinel-c1"
+cluster_type: redis
+remove_backups: true
+wait_log: "--wait --log"

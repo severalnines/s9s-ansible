@@ -1,0 +1,19 @@
+cluster_name: "percona-galera-pp1"
+cluster_type: "galera"
+proxy_admin_user: "proxysql-admin"
+proxy_admin_password: "admin"
+proxy_monitor_user: "proxysql-monitor"
+proxy_monitor_password: "monitor"
+prefix: "proxysql://"
+proxy_hosts:
+    - host: 192.168.40.55
+      port: 6032
+    - host: 192.168.40.56
+      port: 6032
+wait_log: "--wait --log"
+
+## optional db user to add
+db_username: "proxysql-paul"
+db_password: "admin"
+db_database: "*.*"
+db_privs: "ALL PRIVILEGES"

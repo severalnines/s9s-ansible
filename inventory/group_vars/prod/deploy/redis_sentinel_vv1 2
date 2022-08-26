@@ -1,0 +1,15 @@
+cluster_name: "redis-sentinel-c1"
+cluster_type: "redis"
+vendor: "redis"
+version: "6"
+db_admin_user: redis_adm
+db_admin_password: mydbP@55w0rd
+## port cannot be customized as of this time so it's not required.
+db_nodes:
+    - host: 192.168.40.133
+    - host: 192.168.40.134
+    - host: 192.168.40.135
+# cluster_tags should be comma delimited without any space in between
+cluster_tags: "prod,redis-main"
+wait_log: "--wait --log"
+prefix: "redis://"

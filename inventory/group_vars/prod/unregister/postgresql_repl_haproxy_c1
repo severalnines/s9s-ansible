@@ -1,0 +1,8 @@
+cluster_name: "postgres-c1"
+cluster_type: "postgresql_single"
+nodes:
+    - host: 192.168.40.21
+      port: 8422
+    - host: 192.168.40.22
+      port: 9600
+wait_log: "--wait --log"

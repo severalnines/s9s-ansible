@@ -1,0 +1,58 @@
+-   name: Create Cluster | Deploy Percona/MariaDB Galera Cluster
+    hosts: "{{ environ }}"
+    connection: local
+    gather_facts: false
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/deploy/{{ deploy_id|d('') }}
+    tasks:
+    -   set_fact:
+           deploy_type_title: "{% if vendor=='percona' %}Percona{% else %}MariaDB{% endif %}"
+
+    -   name: Check if {{ deploy_type_title }} Galera cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Find if cluster with a proper name exists
+        set_fact:
+            cluster_exists: 1
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Verify if mysql cluster db nodes should fail as cluster name exist already
+        ansible.builtin.debug:
+             msg: "The cluster name you have set already exist"
+        when: cluster_exists is defined
+        any_errors_fatal: true
+
+
+    -   name: Separate the hosts via comma delimiter to allow multiple host deployments
+        set_fact:
+            fixed_nodes: "{{fixed_nodes | default('')}}{{ prefix }}{{ item.host }}:{{ item.port }}?{{ item.node_type }};"
+        loop: "{{ db_nodes }}"
+
+    -   debug: >-
+            msg='s9s cluster --create --cluster-type={{ cluster_type }} --nodes="{{ fixed_nodes }}"
+             --db-admin={{ db_admin_user }} --db-admin-passwd={{ db_admin_password }}
+             --vendor={{ vendor }} --cluster-name={{ cluster_name }}
+             --provider-version={{ version }} --os-user={{ os_user }} --os-key-file={{ os_key_file }}
+             {{ wait_log|d('') }} --with-tags={{ cluster_tags }}'
+        when: cluster_exists is undefined
+
+    -   name: Execute s9s CLI to create a cluster
+        command: >-
+            s9s cluster --create --cluster-type={{ cluster_type }} --nodes="{{ fixed_nodes }}"
+            --db-admin={{ db_admin_user }} --db-admin-passwd={{ db_admin_password }}
+            --vendor={{ vendor }} --cluster-name={{ cluster_name }}
+            --provider-version={{ version }} --os-user={{ os_user }} --os-key-file={{ os_key_file }}
+            {{ wait_log|d('') }} --with-tags={{ cluster_tags }}
+        when: cluster_exists is undefined

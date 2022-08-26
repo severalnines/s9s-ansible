@@ -1,0 +1,4 @@
+cluster_name: "mongodb-mdbgrp"
+cluster_type: mongodb
+remove_backups: true
+wait_log: "--wait --log"

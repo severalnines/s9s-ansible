@@ -1,0 +1,4 @@
+cluster_name: "elasticsearch_eprod1"
+cluster_type: elastic
+remove_backups: true
+wait_log: "--wait --log"

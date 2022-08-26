@@ -1,0 +1,32 @@
+-   name: Get all the list of maintenance
+    command: s9s maintenance --list --long --batch
+    register: maintenance_list
+    when: >-
+        maintenance_action|d('')|trim == "delete_cluster"
+
+-   name: Check if the cluster exist in the list of maintenance
+    set_fact:
+        maintenance_uuid: "{{ item.split()[1] }}"
+    when: >-
+         maintenance_action|d('')|trim == "delete_cluster" and cluster_id|default(0)|int != 0 and
+         item.split()[6] is defined and item.split()[6]|trim == cluster_name
+    with_items:
+    - "{{ maintenance_list.stdout_lines|d([]) }}"
+# -   name: debugging...
+#     debug:
+#          msg: "{{item[1].split()[6]|trim}} ++ {{ item[0].host|trim }}"
+#     with_nested:
+#     - "{{ nodes }}"
+#     - "{{ maintenance_list.stdout_lines }}"
+
+
+-   name: Debugging execution for deleting the maintenance entry for cluster {{ cluster_name }}
+    debug: >-
+         msg='s9s maintenance --delete --uuid {{ maintenance_uuid }}'         
+    when: >-
+        maintenance_action|d('')|trim == "delete_cluster" and maintenance_uuid is defined
+
+-   name: Execute s9s CLI to delete the maintenance entry for cluster {{ cluster_name }}
+    command: s9s maintenance --delete --uuid {{ maintenance_uuid }}       
+    when: >-
+        maintenance_action|d('')|trim == "delete_cluster" and maintenance_uuid is defined

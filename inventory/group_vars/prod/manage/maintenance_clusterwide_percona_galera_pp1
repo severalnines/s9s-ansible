@@ -1,0 +1,6 @@
+cluster_name: "percona-galera-pp1"
+cluster_type: "percona"
+maintenance_window_time_in_minutes: 4320
+# valid maintenance_action: create_bynode, delete_bynode, delete_cluster, cluster_wide
+maintenance_action: cluster_wide
+maintenance_reason: "Maintenance for all galera nodes"

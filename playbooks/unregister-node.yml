@@ -1,0 +1,55 @@
+-   name: Unregister Node | Remove node from existing cluster
+    hosts: "{{ environ }}"
+    connection: local
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/unregister/{{ deploy_id|d('unregister_nodes') }}
+
+    tasks:
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Check the list of nodes in the cluster {{ cluster_name }}
+        command:
+            cmd: "s9s nodes --list --long --cluster-id={{ cluster_id }} "
+        when: cluster_id is defined
+        register: node_list
+
+    -   name: Check if the node exist on the particular cluster
+        set_fact:
+            node_exist: 1
+        when: >
+             cluster_id is defined and
+             item[1].split()[4] is defined and item[1].split()[4]|trim == item[0].host|trim and
+             item[1].split()[5] is defined and item[1].split()[5]|trim == item[0].port|trim
+        with_nested:
+        - "{{ nodes }}"
+        - "{{ node_list.stdout_lines }}"
+
+    -   name: Verify if node still exist?
+        ansible.builtin.debug:
+             msg: "The host:port combination no longer exist. Nothing to remove or unregister."
+        when: cluster_id is defined and node_exist is undefined
+        
+    -   name: Set the retry count
+        set_fact:
+             retry_count: 0
+
+    -   include_tasks: helpers/multi-node-unregister-node.yml
+        when: cluster_id is defined and node_exist is defined and node_exist |int == 1 and retry_count | int < nodes|length

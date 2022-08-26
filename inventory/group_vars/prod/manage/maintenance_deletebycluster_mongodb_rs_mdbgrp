@@ -1,0 +1,4 @@
+cluster_name: "mongodb-mdbgrp"
+cluster_type: "mongodb"
+# valid maintenance_action:  create_bynode, delete_bynode, delete_cluster, cluster_wide
+maintenance_action: delete_cluster

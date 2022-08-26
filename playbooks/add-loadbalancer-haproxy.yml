@@ -1,0 +1,55 @@
+-   name: Add Load Balancer | Deploy HAProxy
+    hosts: "{{ environ }}"
+    connection: local
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/add_lb/{{ deploy_id|d('') }}
+
+    tasks:           
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Check the list of nodes in the cluster
+        command:
+            cmd: "s9s nodes --list --long --cluster-id={{ cluster_id }} "
+        when: cluster_id is defined
+        register: node_list
+
+    -   name: Check if the loadbalancer has already been deployed on the node
+        set_fact:
+            loadbalancer: 1
+            str_node_port: "{{ str_node_port|default('') }} {{ item[0].host|trim }}:{{item[0].ha_port|default('9600')|trim}}"
+        when: >
+             item[1].split()[4] is defined and item[1].split()[4]|trim == item[0].host|trim and
+             item[1].split()[5] is defined and item[1].split()[5]|trim == item[0].ha_port|default('9600')|trim
+        with_nested:
+        - "{{ proxy_hosts }}"
+        - "{{ node_list.stdout_lines }}"
+
+    -   name: Verify if HAProxy nodes should fail as host and port exist already
+        ansible.builtin.debug:
+             msg: "The host:port combination you have set already exist : {{ str_node_port }}. Cannot continue deploying. Remove existing nodes first."
+        when: loadbalancer is defined
+        
+    -   name: Set the retry count
+        set_fact:
+             retry_count: 0
+
+    -   include_tasks: helpers/multi-node-deploy-haproxy.yml
+        when: retry_count | int < proxy_hosts|length

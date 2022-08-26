@@ -1,0 +1,9 @@
+cluster_name: "percona-galera-pp1"
+cluster_type: "galera"
+backup_method: "xtrabackupfull"
+backup_directory: /home/vagrant/backups
+store_on_controller: true
+backup_schedule: 10 18 * * *
+node:
+    - host: 192.168.40.55
+      port: 3306

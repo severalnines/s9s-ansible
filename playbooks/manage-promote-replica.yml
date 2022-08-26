@@ -1,0 +1,77 @@
+-   name: Manage Database Replica | Promote a Database Replica/Standby node
+    hosts: "{{ environ }}"
+    connection: local
+    gather_facts: false
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/manage/{{ deploy_id|d('') }}
+    tasks:
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Verifying cluster's existence...
+        ansible.builtin.debug:
+             msg: "Cluster ID was not extracted. Cluster does no longer exist..."
+        when: cluster_id is undefined
+
+    -   name: Check the list of nodes in the cluster
+        command:
+            # cmd: "s9s nodes --list --long --cluster-id={{ cluster_id }} "
+            cmd: 's9s node --list --long --cluster-id {{ cluster_id }} --batch --node-format="%A %P %R\n" "{{ promote_host }}"'
+        when: cluster_id is defined
+        register: node_list
+
+    -   name: Check if the node to promote exist on the assigned cluster and is a replica or a standby node
+        set_fact:
+            node_exist: 1
+            valid_play: true
+        when: >
+             cluster_id|default(0)|int != 0 and
+             item.split()[0] is defined and item.split()[0]|trim == promote_host|trim and
+             item.split()[1] is defined and item.split()[1]|trim == promote_port|trim and
+             item.split()[2] is defined and item.split()[2]|trim == "slave"
+        with_items:
+        - "{{ node_list.stdout_lines }}"
+
+    # -   name: Debugging
+    #     ansible.builtin.debug:
+    #         msg: "Some variables == {{ item.split()[0] }} + {{ item.split()[1] }} + {{ item.split()[2] }}"
+    #     when: >
+    #          cluster_id|default(0)|int != 0
+    #     with_items:
+    #     - "{{ node_list.stdout_lines }}"
+
+    -   name: Validate target node information...
+        debug:
+             msg: "Cannot promote node. Please verify replica/standby node belongs to the correct cluster {{ cluster_id|d(0) }} and it is a replica/standby node"
+        when: valid_play|d(false)|bool == false
+
+    -   name: Preparing to format the node host and port combination
+        set_fact:
+            fixed_nodes: "{{fixed_nodes | default('')}}{{ promote_host }}:{{ promote_port }}"
+        when: valid_play|d(false)|bool == true
+
+    -   debug: >-
+             msg='s9s replication --promote --slave="{{ fixed_nodes }}" --cluster-id={{ cluster_id }} --log {{ wait_log|d('') }}'
+        when: valid_play|d(false)|bool == true
+
+    -   name: Execute s9s CLI to setup and deploy agents
+        command: >-
+            s9s replication --promote --slave="{{ fixed_nodes }}" --cluster-id={{ cluster_id }} --log {{ wait_log|d('') }}
+        when: valid_play|d(false)|bool == true

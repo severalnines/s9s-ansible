@@ -1,0 +1,17 @@
+cluster_name: "mysql-repl5.7"
+cluster_type: replication
+maintenance_window_time_in_minutes: 10
+# valid maintenance_action:  create_bynode, delete_bynode, delete_cluster, cluster_wide
+maintenance_action: create_bynode
+## datetime format e.g. 2022-08-09T03:40:52.000Z
+maintenance_start_in_datetime_format: 2022-08-15T20:20:00
+## datetime format e.g. 2022-08-09T03:55:52.000Z
+maintenance_end_in_datetime_format: 2022-08-15T20:50:00
+maintenance_reason: "Maintenance - only on selected mysql nodes"
+nodes:
+    - host: 192.168.40.60
+    - host: 192.168.40.62
+
+#  s9s maintenance --create --nodes="192.168.40.58" --start="2022-08-09T03:40:52.000Z" --end="2022-08-09T03:55:52.000Z" --reason="Memory upgrade."
+#
+# s9s cluster  --disable-recovery --wait --log  --cluster-id="82"  --maintenance-minutes="10"  --reason="testRecoveryJob"

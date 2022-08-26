@@ -1,0 +1,12 @@
+cluster_name: "postgres-c1"
+cluster_type: "postgresql"
+proxy_type: "haproxy"
+prefix: "haproxy://"
+proxy_hosts:
+    - host: 192.168.40.20
+      ha_port: 8422
+      rw_splitting: true
+    - host: 192.168.40.21
+      ha_port: 8422
+      rw_splitting: true
+wait_log: "--wait --log"

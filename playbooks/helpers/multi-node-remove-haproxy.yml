@@ -1,0 +1,19 @@
+# wait_until_success.yml
+-   name: Separate the hosts via comma delimiter to allow multiple host deployments
+    set_fact:
+        fixed_nodes: "{{ prefix }}{{ proxy_hosts[retry_count|int].host }}:{{ proxy_hosts[retry_count|int].ha_port}}"
+        retry_count: "{{ retry_count | int + 1 }}"
+    when: loadbalancer | int == 2
+
+-   debug: >-
+         msg='s9s cluster --remove-node --cluster-id={{ cluster_id }} --nodes="{{ fixed_nodes }}" {{ wait_log|d('') }}'
+    when: loadbalancer | int == 2
+
+-   name: Execute s9s CLI to add loadbalancer
+    command: >-
+        s9s cluster --remove-node --cluster-id={{ cluster_id }} --nodes="{{ fixed_nodes }}" {{ wait_log|d('') }}
+    ignore_errors: True
+    when: loadbalancer | int == 2
+
+-   include_tasks: helpers/multi-node-remove-proxysql.yml
+    when: retry_count | int < proxy_hosts|length

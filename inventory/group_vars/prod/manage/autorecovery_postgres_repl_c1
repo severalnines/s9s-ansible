@@ -1,0 +1,3 @@
+cluster_name: postgres-c1
+cluster_type: postgresql
+wait_log: "--wait --log"

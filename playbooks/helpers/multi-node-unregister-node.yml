@@ -1,0 +1,24 @@
+# multi-node-unregister-node.yml
+-   name: Separate the hosts via comma delimiter to allow multiple host deployments
+    set_fact:
+        fixed_nodes: "{{ nodes[retry_count|int].host }}:{{ nodes[retry_count|int].port }}"
+        retry_count: "{{ retry_count | int + 1 }}"
+    when: node_exist |int == 1
+    
+-   name: Set uninstall flag if required
+    set_fact:
+        uninstall_arg: "{% if uninstall|default(false)|bool == true %}--uninstall{% else %}{% endif %}"
+    when: node_exist |int == 1 
+
+-   debug: >-
+         msg='s9s cluster --remove-node --cluster-id={{ cluster_id }} --nodes="{{ fixed_nodes }}" {{ wait_log|d('') }} {{uninstall_arg}}'
+    when: node_exist |int == 1 
+
+-   name: Execute s9s CLI to remove/unregister a node
+    command: >-
+        s9s cluster --remove-node --cluster-id={{ cluster_id }} --nodes="{{ fixed_nodes }}" {{ wait_log|d('') }}  {{uninstall_arg}}
+    ignore_errors: True
+    when: node_exist |int == 1
+
+-   include_tasks: helpers/multi-node-unregister-node.yml
+    when: retry_count | int < nodes|length

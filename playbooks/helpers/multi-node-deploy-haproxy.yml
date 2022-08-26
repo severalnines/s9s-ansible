@@ -1,0 +1,24 @@
+-   name: Separate the hosts via comma delimiter to allow multiple host deployments
+    set_fact:
+        fixed_nodes: "{{ prefix }}{{ proxy_hosts[retry_count|int].host }}:{{ proxy_hosts[retry_count|int].ha_port}}"
+        retry_count: "{{ retry_count | int + 1 }}"
+    when: loadbalancer is undefined
+    
+-   name: Setting db user, db name, and db privileges
+    set_fact:
+        db_ops: "?db_username='{{ db_username }}'&db_password='{{ db_password }}'&db_database='{{ db_database}}'&db_privs='{{ db_privs }}'"
+    when: (db_username is defined and db_username|length > 0) and (db_password is defined and db_password|length > 0) and (db_database is defined and db_database|length > 0)
+
+-   debug: >-
+         msg='s9s cluster --add-node --cluster-id={{ cluster_id }} --nodes="{{ fixed_nodes }}{{ db_ops|default('') }}"
+         --os-user={{ os_user }} --os-key-file={{ os_key_file }} {{ wait_log|d('') }}'
+    when: loadbalancer is undefined
+
+-   name: Execute s9s CLI to add loadbalancer
+    command: >-
+        s9s cluster --add-node --cluster-id={{ cluster_id }} --nodes="{{ fixed_nodes }}{{ db_ops|default('') }}"
+         --os-user={{ os_user }} --os-key-file={{ os_key_file }} {{ wait_log|d('') }}
+    when: loadbalancer is undefined
+
+-   include_tasks: helpers/multi-node-deploy-haproxy.yml
+    when: retry_count | int < proxy_hosts|length

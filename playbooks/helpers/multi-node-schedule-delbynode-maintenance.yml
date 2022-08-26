@@ -1,0 +1,51 @@
+-   name: Get all the list of maintenance
+    command: s9s maintenance --list --long --batch
+    register: maintenance_list
+    when: >-
+        maintenance_action|d('')|trim == "delete_bynode" and
+        retry_count | int < nodes|length and valid_play|d(false)|bool == true
+
+# -   name: debugging...
+#     debug:
+#          msg: "{{item[1].split()[6]|trim}} ++ {{ item[0].host|trim }}"
+#     with_nested:
+#     - "{{ nodes }}"
+#     - "{{ maintenance_list.stdout_lines }}"
+
+-   name: Check if the host/db node exist in the list of maintenance
+    set_fact:
+        maintenance_uuid: "{{ item[1].split()[1] }}"
+        maintenance_host: "{{ item[0].host }}"
+        retry_count: "{{ retry_count | int + 1 }}"
+    when: >-
+         maintenance_action|d('')|trim == "delete_bynode" and cluster_id|default(0)|int != 0 and
+         item[1].split()[6] is defined and item[1].split()[6]|trim == item[0].host|trim and
+         item[1].split()[1] is defined and item[1].split()[1]|trim|length > 3
+    with_nested:
+    - "{{ nodes }}"
+    - "{{ maintenance_list.stdout_lines }}"
+
+# -   name: debugging...
+#     debug:
+#          msg: "{{item[1].split()[6]|trim}} ++ {{ item[0].host|trim }}"
+#     with_nested:
+#     - "{{ nodes }}"
+#     - "{{ maintenance_list.stdout_lines }}"
+#
+-   name: Debugging execution for deleting the maintenance entry for host {{ maintenance_host|d('') }}
+    debug: >-
+         msg='s9s maintenance --delete --uuid {{ maintenance_uuid }}'         
+    when: >-
+        maintenance_action|d('')|trim == "delete_bynode" and
+        retry_count | int < nodes|length and valid_play|d(false)|bool == true and
+        maintenance_uuid|d('')|length > 0 and maintenance_host|d('')|length > 0
+
+-   name: Execute s9s CLI to delete the maintenance entry for host {{ maintenance_host|d('') }}
+    command: s9s maintenance --delete --uuid {{ maintenance_uuid }}       
+    when: >-
+        maintenance_action|d('')|trim == "delete_bynode" and
+        retry_count | int < nodes|length and valid_play|d(false)|bool == true and
+        maintenance_uuid|d('')|length > 0 and maintenance_host|d('')|length > 0
+
+-   include_tasks: helpers/multi-node-schedule-delbynode-maintenance.yml
+    when: retry_count | int < nodes|length

@@ -1,0 +1,73 @@
+-   name: Create Scheduled Backup | Schedule a backup for a cluster
+    hosts: "{{ environ }}"
+    connection: local
+    gather_facts: false
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/backup/{{ deploy_id|default('') }}
+
+    tasks:
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Check the list of nodes in the cluster
+        command:
+            cmd: "s9s nodes --list --long --cluster-id={{ cluster_id }} "
+        when: cluster_id is defined
+        register: node_list
+
+    -   name: Cluster name check
+        debug:
+             msg: "Cluster name is not found. Playbook shall not push through."
+        when: cluster_id is undefined or cluster_id|default(0)|int == 0
+        
+    -   name: Check if the backup source node exist on the assigned cluster
+        set_fact:
+            node_exist: 1
+            valid_play: true
+        when: >
+             cluster_id|default(0)|int != 0 and
+             item[1].split()[4] is defined and item[1].split()[4]|trim == item[0].host|trim and
+             item[1].split()[5] is defined and item[1].split()[5]|trim == item[0].port|trim
+        with_nested:
+        - "{{ node }}"
+        - "{{ node_list.stdout_lines }}"
+
+    -   name: Preparing to format the node host and port combination
+        set_fact:
+            fixed_nodes: "{{fixed_nodes | default('')}}{{ item.host }}:{{ item.port }};"
+        loop: "{{ node }}"
+        when: valid_play|default(false)|bool == true
+
+    -   debug: >-
+            msg="s9s backup --create --backup-method={{ backup_method }} --nodes='{{ fixed_nodes }}'
+             --cluster-id={{ cluster_id }} --backup-dir={{ backup_directory }}
+             {% if store_on_controller|d(false)|bool == true %}--on-controller{% endif %} 
+             --backup-retention={{ backup_retention|d(31)|int }}
+             --recurrence='{{ backup_schedule }}' {{ wait_log|d('') }}"
+        when: valid_play|default(false)|bool == true
+
+    -   name: Execute s9s CLI to create a cluster
+        command: >-
+            s9s backup --create --backup-method={{ backup_method }} --nodes='{{ fixed_nodes }}'
+             --cluster-id={{ cluster_id }} --backup-dir={{ backup_directory }}
+             {% if store_on_controller|d(false)|bool == true %}--on-controller{% endif %} 
+             --backup-retention={{ backup_retention|d(31)|int }}
+             --recurrence='{{ backup_schedule }} {{ wait_log|d('') }}'
+        when: valid_play|default(false)|bool == true

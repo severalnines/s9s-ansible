@@ -1,0 +1,14 @@
+cluster_name: "mysql-replication-c1"
+cluster_type: replication
+proxy_type: "keepalived"
+prefix: "keepalived://"
+network_ethernet_dev:  enp0s8
+vrrp_virtual_ip: 192.168.40.201
+proxy_hosts:
+    - host: 192.168.40.53
+      port: 112
+      ha_port: 8422
+    - host: 192.168.40.57
+      port: 112
+      ha_port: 8422
+wait_log: "--wait --log"

@@ -1,0 +1,41 @@
+-   name: Drop Cluster | Remove existing cluster from ClusterControl
+    hosts: "{{ environ }}"
+    connection: local
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/drop_cluster/{{ deploy_id|d('unregister_nodes') }}
+
+    tasks:
+            
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Verifying cluster's existence...
+        ansible.builtin.debug:
+             msg: "Cluster ID was not extracted. Cluster does no longer exist..."
+        when: cluster_id is undefined
+
+    -   debug:
+            msg='s9s cluster --drop --cluster-id={{ cluster_id }} --remove-backups={% if remove_backups|d(false)|bool == false %}false{% else %}true{% endif %} {{ wait_log|d('') }}'
+        when: cluster_id is defined
+
+    -   name: Execute s9s CLI to drop a cluster (cluster will keep running, it will only be unregistered from the ClusterControl)
+        command: >-
+            s9s cluster --drop --cluster-id={{ cluster_id }} --remove-backups={{ remove_backups|d("false") }} {{ wait_log|d('') }}
+        when: cluster_id is defined

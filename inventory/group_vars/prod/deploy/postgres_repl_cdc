@@ -1,0 +1,15 @@
+cluster_name: "postgres-c1"
+cluster_type: "postgresql"
+vendor: "postgresql"
+version: "14"
+db_admin_user: root
+db_admin_password: mydbP@55w0rd
+db_nodes:
+    - host: 192.168.40.53
+      port: 5432
+    - host: 192.168.40.54
+      port: 5432
+# cluster_tags should be comma delimited without any space in between
+cluster_tags: "prod,c1-group"
+wait_log: "--wait --log"
+prefix: "postgresql://"

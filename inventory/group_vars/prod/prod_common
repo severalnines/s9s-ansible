@@ -1,0 +1,2 @@
+os_user: "vagrant"
+os_key_file: "/home/vagrant/.ssh/id_rsa"

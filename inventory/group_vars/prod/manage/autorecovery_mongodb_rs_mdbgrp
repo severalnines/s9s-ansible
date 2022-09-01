@@ -1,4 +1,4 @@
 cluster_name: "mongodb-mdbgrp"
 cluster_type: mongodb
-enable_auto_recovery: false
+enable: false
 wait_log: "--wait --log"

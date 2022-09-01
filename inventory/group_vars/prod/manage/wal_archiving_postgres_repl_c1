@@ -1,6 +1,13 @@
-cluster_name: "mariadb-replication-c1"
-cluster_type: "replication"
-wait_log: --wait --log
+cluster_name: "postgres-c1"
+cluster_type: "postgresql"
+archive_directory: /opt/pgsql-14/wals
+compression: on
+nodes:
+    - host: 192.168.40.23
+      port: 6433
+    - host: 192.168.40.24
+      port: 6434
+
 rpc_user: myuser
 rpc_password: myuserpass
 # RPC V2 URL should have the v2/jobs as it's sub-directory in the URL. If you need to change the URL, likely you'll change only the IP address 

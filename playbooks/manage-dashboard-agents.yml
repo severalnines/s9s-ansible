@@ -30,11 +30,90 @@
              msg: "Cluster ID was not extracted. Cluster does no longer exist..."
         when: cluster_id is undefined
 
-    -   debug: >-
-             msg='s9s cluster --deploy-agents --cluster-id={{ cluster_id }} {{ wait_log|d('') }}'
-        when: loadbalancer is undefined
+    -   name: Check the list of prometheus node in the cluster {{ cluster_name }}
+        command:
+            cmd: "s9s nodes --list --long --cluster-id={{ cluster_id }} "
+        when: cluster_id is defined
+        register: node_list
 
-    -   name: Execute s9s CLI to setup and deploy agents
+    -   name: Check if the node exist on the particular cluster
+        set_fact:
+            node_exist: true
+        when: >
+             cluster_id is defined and
+             item.split()[4] is defined and item.split()[4]|trim == prometheus_host|trim and
+             item.split()[5] is defined and item.split()[5]|trim == prometheus_port|trim
+        with_items:
+        - "{{ node_list.stdout_lines }}"
+
+    -   name: Verifying any existing prometheus installation...
+        ansible.builtin.debug:
+             msg: "The host:port combination is already taken. Cannot proceed enabling dashboard agents"
+        when: cluster_id is defined and node_exist|d(false)|bool == false and disable|d(false)|bool == false
+
+    -   name: Verifying prometheus if running on the specified host or node.
+        ansible.builtin.debug:
+             msg: "The host:port combination no longer exist. Nothing to remove or unregister."
+        when: cluster_id is defined and disable|d(false)|bool == true
+
+    -   name: Showing debug command using RPC V2 to enable dashboards/agents
+        debug:
+             msg: >
+              curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+              \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+              \"job_spec\":{\"command\":\"deploy_agents\",
+              \"job_data\":{\"clusterId\":\"{{ cluster_id }}\",\"node\":{ \"data_retention\":\"{{ data_retention }}\",
+              \"data_retention_size\":{{ data_retention_size }},\"hostname\":\"{{ prometheus_host }}\",\"datadir\":\"{{ datadir }}\",
+              \"scrape_interval\":\"{{ scrape_interval }}\",\"configuration\":{{ configuration }} }}},
+              \"title\":\"Enabling Dashboard and Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+              \"password\":\"{{ rpc_password }}\"}}"
+        when: cluster_id|d(0)|int > 0 and disable|d(false)|bool == false
+
+    -   name: Execute s9s CLI to enable dashboards/agents
         command: >-
-            s9s cluster --deploy-agents --cluster-id={{ cluster_id }} {{ wait_log|d('') }}
-        when: loadbalancer is undefined
+           curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+           \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+           \"job_spec\":{\"command\":\"deploy_agents\",
+           \"job_data\":{\"clusterId\":\"{{ cluster_id }}\",\"node\":{ \"data_retention\":\"{{ data_retention }}\",
+           \"data_retention_size\":{{ data_retention_size }},\"hostname\":\"{{ prometheus_host }}\",\"datadir\":\"{{ datadir }}\",
+           \"scrape_interval\":\"{{ scrape_interval }}\",\"configuration\":{{ configuration }} }}},
+           \"title\":\"Enabling Dashboard and Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+           \"password\":\"{{ rpc_password }}\"}}"
+        args:
+            warn: false
+        when: cluster_id|d(0)|int > 0 and disable|d(false)|bool == false
+
+
+    -   name: Separate the hosts via comma delimiter to allow multiple host deployments
+        set_fact:
+            fixed_nodes: "{{ prometheus_host }}:{{ prometheus_port }}"
+        when: node_exist|d(false)|bool == true
+
+    -   name: Showing debug command using RPC V2 to disable dashboards/agents
+        debug:
+             msg: >
+               curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+               \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+               \"job_spec\":{\"command\":\"removenode\",
+               \"job_data\":{\"clusterId\":\"{{ cluster_id }}\",
+               \"enable_uninstall\":{% if disable|d(false)|bool == true %}true{%else%}false{% endif %},
+               \"unregister_only\":{% if unregister_only|d(false)|bool == true %}true{%else%}false{% endif %},
+               \"node\":{ \"hostname\": \"{{ prometheus_host }}\", \"port\": \"{{ prometheus_port}}\" } }},
+               \"title\":\"Disabling Dashboard and Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+               \"password\":\"{{ rpc_password }}\"}}"
+        when: node_exist|d(false)|bool == true and cluster_id|d(0)|int > 0 and disable|d(false)|bool == true
+
+    -   name: Execute s9s CLI to disable dashboards/agents
+        command: >-
+           curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+           \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+           \"job_spec\":{\"command\":\"removenode\",
+           \"job_data\":{\"clusterId\":\"{{ cluster_id }}\",
+           \"enable_uninstall\":{% if disable|d(false)|bool == true %}true{%else%}false{% endif %},
+           \"unregister_only\":{% if unregister_only|d(false)|bool == true %}true{%else%}false{% endif %},
+           \"node\":{ \"hostname\": \"{{ prometheus_host }}\", \"port\": \"{{ prometheus_port}}\" } }},
+           \"title\":\"Disabling Dashboard and Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+           \"password\":\"{{ rpc_password }}\"}}"
+        args:
+            warn: false
+        when: node_exist|d(false)|bool == true and cluster_id|d(0)|int > 0 and disable|d(false)|bool == true

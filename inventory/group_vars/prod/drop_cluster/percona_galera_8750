@@ -1,0 +1,4 @@
+cluster_name: "percona_galea_uspto_8750"
+cluster_type: "galera"
+remove_backups: true
+wait_log: "--wait --log"

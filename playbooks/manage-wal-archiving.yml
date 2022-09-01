@@ -1,0 +1,76 @@
+-   name: Manage WAL Archiving | Enable/Disable WAL Archiving
+    hosts: "{{ environ }}"
+    connection: local
+    gather_facts: false
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/manage/{{ deploy_id|d('') }}
+
+    tasks:
+    -   name: "Set enable wal archiving. Values accepted are: off, on, or always"
+        set_fact:
+            enable_wal_archiving: "{% if enable|d(true)|bool == true %}on{% else %}off{% endif %}"
+
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Verifying cluster's existence...
+        ansible.builtin.debug:
+             msg: "Cluster ID was not extracted. Cluster does no longer exist..."
+        when: cluster_id is undefined
+
+    -   ansible.builtin.debug:
+             msg: "{{ enable_wal_archiving }}"
+
+    -   name: Showing debug command using RPC V2 to enable WAL archiving
+        debug:
+             msg: >
+              curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+              \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",\"job_spec\":{\"command\":\"enable_log_archiving\",
+              \"job_data\":{\"archive_dir\":\"{ { archive_directory }}\",\"archive_mode\":\"{{ enable_wal_archiving }}\", \"clusterId\":\"{{ cluster_id }}\",\"compression\":{{ compression }},
+              \"force\":false,\"node\":{ \"hostname\":\"192.168.40.54\",\"port\":5432 }}},\"title\":\"Enable WAL Log Archiving\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+              \"password\":\"{{ rpc_password }}\"}}"
+        when: cluster_id|d(0)|int > 0 and ( enable_wal_archiving == "on" or  enable_wal_archiving == "always")
+
+    -   name: Execute s9s CLI to enable WAL archiving
+        command: >-
+            curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},\"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+            \"job_spec\":{\"command\":\"enable_log_archiving\",\"job_data\":{\"archive_dir\":\"{{ archive_directory }}\",\"archive_mode\":\"{{ enable_wal_archiving }}\", 
+            \"clusterId\":\"{{ cluster_id }}\",\"compression\":{{ compression }},\"force\":false, 
+            \"node\":{ \"hostname\":\"192.168.40.54\",\"port\":5432 }}},
+            \"title\":\"Enable WAL Log Archiving\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",\"password\":\"{{ rpc_password }}\"}}"
+        args:
+            warn: false
+        when: cluster_id|d(0)|int > 0 and ( enable_wal_archiving == "on" or  enable_wal_archiving == "always")
+
+    -   name: Showing debug command using RPC V2 to disable WAL archiving
+        debug: >-
+             msg='curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},\"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",\"job_spec\":{\"command\":\"enable_log_archiving\",\"job_data\":{\"archive_dir\":\"{{ archive_directory }}\",\"archive_mode\":\"{{ enable_wal_archiving }}\", \"clusterId\":\"{{ cluster_id }}\",\"compression\":{{ compression }},\"force\":false,\"node\":{ \"hostname\":\"192.168.40.54\",\"port\":5432 }}},\"title\":\"Enable WAL Log Archiving\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",\"password\":\"{{ rpc_password }}\"}}"'
+        when: cluster_id|d(0)|int > 0 and enable_wal_archiving == "off"
+
+    -   name: Execute s9s CLI to disable WAL archiving
+        command: >-
+            curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},\"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+            \"job_spec\":{\"command\":\"enable_log_archiving\",\"job_data\":{\"archive_dir\":\"{{ archive_directory }}\",\"archive_mode\":\"{{ enable_wal_archiving }}\", 
+            \"clusterId\":\"{{ cluster_id }}\",\"compression\":{{ compression }},\"force\":false, 
+            \"node\":{ \"hostname\":\"192.168.40.54\",\"port\":5432 }}},
+            \"title\":\"Enable WAL Log Archiving\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",\"password\":\"{{ rpc_password }}\"}}"
+        args:
+            warn: false
+        when: cluster_id|d(0)|int > 0and enable_wal_archiving == "off"

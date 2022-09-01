@@ -1,0 +1,78 @@
+-   name: Manage Query Monitor Agents | Enable/Disable Query Monitor Agents
+    hosts: "{{ environ }}"
+    connection: local
+    gather_facts: false
+    vars_files:
+        - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
+        - ../inventory/group_vars/{{ environ }}/manage/{{ deploy_id|d('') }}
+
+    tasks:
+    -   name: Check if cluster exists
+        command:
+            cmd: s9s cluster --list --long
+        register: cluster_list
+
+    -   name: Find clusters of a correct type
+        set_fact:
+            lines: "{{ lines|default([]) +  [item] }}"
+        when: item|trim is search(cluster_type)
+        with_items:
+        -   "{{ cluster_list.stdout_lines }}"
+
+    -   name: Extract the cluster ID
+        set_fact:
+            cluster_id: "{{ item.split()[0] }}"
+        when: lines is defined and item|trim is search(cluster_name)
+        with_items:
+        -   "{{ lines }}"
+
+    -   name: Verifying cluster's existence...
+        ansible.builtin.debug:
+             msg: "Cluster ID was not extracted. Cluster does no longer exist..."
+        when: cluster_id is undefined
+
+    -   name: Showing debug command using RPC V2 to enable query monitor agents
+        debug:
+             msg: >
+              curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+              \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+              \"job_spec\":{\"command\":\"deploy_cmonagents\",
+              \"job_data\":{\"clusterId\":\"{{ cluster_id }}\" }},
+              \"title\":\"Enabling Query Monitor Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+              \"password\":\"{{ rpc_password }}\"}}"
+        when: cluster_id|d(0)|int > 0 and enable_qm|d(false)|bool == true
+
+    -   name: Execute s9s CLI to enable query monitor agents
+        command: >-
+              curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+              \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+              \"job_spec\":{\"command\":\"deploy_cmonagents\",
+              \"job_data\":{\"clusterId\":\"{{ cluster_id }}\" }},
+              \"title\":\"Enabling Query Monitor Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+              \"password\":\"{{ rpc_password }}\"}}"
+        args:
+            warn: false
+        when: cluster_id|d(0)|int > 0 and enable_qm|d(false)|bool == true
+
+    -   name: Showing debug command using RPC V2 to disable dashboards/agents
+        debug:
+             msg: >
+              curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+              \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+              \"job_spec\":{\"command\":\"uninstall_cmonagent\",
+              \"job_data\":{\"clusterId\":\"{{ cluster_id }}\" }},
+              \"title\":\"Disabling Query Monitor Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+              \"password\":\"{{ rpc_password }}\"}}"
+        when: cluster_id|d(0)|int > 0 and enable_qm|d(false)|bool == false
+
+    -   name: Execute s9s CLI to disable dashboards/agents
+        command: >-
+              curl -k -XPOST "{{ rpc_v2_url }}" -d"{\"cluster_id\":{{ cluster_id }},
+              \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
+              \"job_spec\":{\"command\":\"uninstall_cmonagent\",
+              \"job_data\":{\"clusterId\":\"{{ cluster_id }}\" }},
+              \"title\":\"Disabling Query Monitor Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
+              \"password\":\"{{ rpc_password }}\"}}"
+        args:
+            warn: false
+        when: cluster_id|d(0)|int > 0 and enable_qm|d(false)|bool == false

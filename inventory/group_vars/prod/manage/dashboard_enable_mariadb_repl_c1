@@ -1,0 +1,28 @@
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+wait_log: --wait --log
+data_retention: 15d
+data_retention_size: 0
+datadir:
+prometheus_host: 192.168.40.63
+prometheus_port: 9090
+scrape_interval: 10s
+# make sure when adding values to the parameters make sure you have escaped the quotes and the values are inside
+## the quotes as well.
+configuration: '[
+{
+  \"arguments\": \"\",
+  \"job\": \"node\",
+  \"scrape_interval\":\"\"
+},
+{
+  \"arguments\": \"--collect.perf_schema.eventswaits --collect.perf_schema.file_events --collect.perf_schema.file_instances --collect.perf_schema.indexiowaits --collect.perf_schema.tableiowaits --collect.perf_schema.tablelocks --collect.info_schema.tablestats --collect.info_schema.processlist --collect.binlog_size --collect.global_status --collect.global_variables --collect.info_schema.innodb_metrics --collect.slave_status --collect.info_schema.userstats\",
+  \"job\": \"mariadbd\",
+  \"scrape_interval\":\"\"
+}
+]'
+rpc_user: myuser
+rpc_password: myuserpass
+# RPC V2 URL should have the v2/jobs as it's sub-directory in the URL. If you need to change the URL, likely you'll change only the IP address 
+## such as your hostname or any FQDN that points to the RPC V2 running in your CC Controller host. In this example, we're using localhost.
+rpc_v2_url: https://127.0.0.1:9501/v2/jobs

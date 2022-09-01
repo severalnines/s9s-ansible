@@ -32,10 +32,10 @@
         when: cluster_id is undefined
 
     -   debug:
-            msg='s9s cluster {% if enable_auto_recovery|d(false)|bool == true %}--enable-recovery{% else %}--disable-recovery{% endif %} --cluster-id={{ cluster_id }}  {{ wait_log|d('') }}'
+            msg='s9s cluster {% if enable|d(false)|bool == true %}--enable-recovery{% else %}--disable-recovery{% endif %} --cluster-id={{ cluster_id }}  {{ wait_log|d('') }}'
         when: cluster_id is defined
 
     -   name: Execute s9s CLI to drop a cluster (cluster will keep running, it will only be unregistered from the ClusterControl)
         command: >-
-            s9s cluster {% if enable_auto_recovery|d(false)|bool == true %}--enable-recovery{% else %}--disable-recovery{% endif %} --cluster-id={{ cluster_id }}  {{ wait_log|d('') }}
+            s9s cluster {% if enable|d(false)|bool == true %}--enable-recovery{% else %}--disable-recovery{% endif %} --cluster-id={{ cluster_id }}  {{ wait_log|d('') }}
         when: cluster_id is defined

@@ -1,0 +1,20 @@
+cluster_name: "percona_galea_uspto_8750"
+cluster_type: "galera"
+vendor: "percona"
+db_admin_user: root
+db_admin_password: mydbP@55w0rd
+version: "5.7"
+db_nodes:
+    - host: 192.168.40.120
+      port: 3306
+      node_type: master
+    - host: 192.168.40.121
+      port: 3306
+      node_type: master
+    - host: 192.168.40.122
+      port: 3306
+      node_type: master
+# cluster_tags should be comma delimited without any space in between
+cluster_tags: "uspto,sample_env"
+wait_log: "--wait --log"
+prefix: "mysql://"

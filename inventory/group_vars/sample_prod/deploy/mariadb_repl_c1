@@ -11,9 +11,6 @@ db_nodes:
     - host: 192.168.40.59
       port: 3306
       node_type: slave
-    # - host: 192.168.40.22
-    #   port: 3306
-    #   node_type: slave
 # cluster_tags should be comma delimited without any space in between
 cluster_tags: "prod,c1-group"
 wait_log: "--wait --log"

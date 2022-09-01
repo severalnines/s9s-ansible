@@ -1,5 +1,0 @@
-[defaults]
-environ=prod
-
-[prod]
-127.0.0.1

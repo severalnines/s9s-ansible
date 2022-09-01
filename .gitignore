@@ -6,3 +6,4 @@
 *.swp
 ._*
 .DS_Store
+ansible.cfg

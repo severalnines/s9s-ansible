@@ -1,7 +1,7 @@
 # s9s-ansible
-The *s9s-ansible* are ansible scripts consisting of playbooks that takes action for the ClusterControl instead of manually following the procedures based on the UI, *s9s-ansible* will do the work by automating the job. Thus, removing the need to do it manually, but instead relies on an efficient automation and quick modification of values based on the given parameters giving you the benefit to quickly do the job or determine the outcome of the job quickly. The job activity is based on the playbook that is chosen to be executed, whereas the playbook depends on the given paramater variables defined in each of its inventory files given.
+The **s9s-ansible** are ansible scripts consisting of playbooks that takes action for the ClusterControl instead of manually following the procedures based on the UI, **s9s-ansible** will do the work by automating the job. Thus, removing the need to do it manually, but instead relies on an efficient automation and quick modification of values based on the given parameters giving you the benefit to quickly do the job or determine the outcome of the job quickly. The job activity is based on the playbook that is chosen to be executed, whereas the playbook depends on the given paramater variables defined in each of its inventory files given.
 
-Presently, the *s9s-ansible* playbooks applies the following job activities and actions :
+Presently, the **s9s-ansible** playbooks applies the following job activities and actions :
 | Actions        | Job Description |
 | ------------- |:-------------|
 | Database cluster deployment     | Deploy these types of databases: MySQL/MariaDB/Percona/Galera, PostgreSQL, MongoDB, Redis, SQL Server (Availability Groups), Elasticssearch |
@@ -22,21 +22,21 @@ Presently, the *s9s-ansible* playbooks applies the following job activities and 
 
 
 # Getting started with s9s-ansible?
-Ansible is known to operate as a tool for automation especially in DevOps, or CI/CD systems. However, the *s9s-ansible* uses ansible as the wrapper to build up this project. However, the main heart and soul that does the job is in fact the tools made by Severalnines which is the [s9s-cli](https://github.com/severalnines/s9s-tools) tool and also some integration with [RCP v2](https://severalnines.com/downloads/cmon/cmon-docs/current/rpcv2.html).
+Ansible is known to operate as a tool for automation especially in DevOps, or CI/CD systems. However, the **s9s-ansible** uses ansible as the wrapper to build up this project. However, the main heart and soul that does the job is in fact the tools made by Severalnines which is the [s9s-cli](https://github.com/severalnines/s9s-tools) tool and also some integration with [RCP v2](https://severalnines.com/downloads/cmon/cmon-docs/current/rpcv2.html).
 
-Since *s9s-ansible* uses the s9s-tools and some RPC v2 (uses cURL command to invoke the API via given URL), *s9s-ansible* requires only to be run under where the ClusterControl host is installed and thus, it connects via 127.0.0.1 or localhost. Ideally, it can work using TCP as long as a valid FQDN, hostname, or IP address is specified. Although, it has never been tested and is never intended yet to be supported initially. Currently, the ideal usage of *s9s-ansible* is to run in the ClusterControl controller host, and ansible has to be installed on the same host as well, where ClusterControl is hosted and running.
+Since **s9s-ansible** uses the s9s-tools and some RPC v2 (uses cURL command to invoke the API via given URL), **s9s-ansible** requires only to be run under where the ClusterControl host is installed and thus, it connects via 127.0.0.1 or localhost. Ideally, it can work using TCP as long as a valid FQDN, hostname, or IP address is specified. Although, it has never been tested and is never intended yet to be supported initially. Currently, the ideal usage of **s9s-ansible** is to run in the ClusterControl controller host, and ansible has to be installed on the same host as well, where ClusterControl is hosted and running.
 
 ## Using s9s-ansible
-In order to use the *s9s-ansible*, you must download or clone the latest or main brach of this project.
+In order to use the **s9s-ansible**, you must download or clone the latest or main brach of this project.
 
 E.g.
 ```
 $ git clone git@github.com:severalnines/s9s-ansible.git
 ```
 
-You can store it in any location of your Linux environment. Preferrably, the *s9s-ansible* is only tested and worked on a Linux environment. Other operating systems other than Linux is not supported.
+You can store it in any location of your Linux environment. Preferrably, the **s9s-ansible** is only tested and worked on a Linux environment. Other operating systems other than Linux is not supported.
 
-Once you have the package inside your system, go to the directory of your *s9s-ansible* copy. copy the ```.sample-ansible.cfg``` and rename it as ```ansible.cfg```.
+Once you have the package inside your system, go to the directory of your **s9s-ansible** copy. copy the ```.sample-ansible.cfg``` and rename it as ```ansible.cfg```.
 
 Basically, the ansible.cfg as of this writing only containts the definition of your inventory paramter and where it is located.
 
@@ -68,7 +68,7 @@ environ=aws_qa
 127.0.0.1
 ```
 
-Apart from these files, the *s9s-ansible* contains the inventory directory where it groups the type of environment and is synced also to the type of the environment you defined (for example) in file ```inv/sample_prod```, it has
+Apart from these files, the **s9s-ansible** contains the inventory directory where it groups the type of environment and is synced also to the type of the environment you defined (for example) in file ```inv/sample_prod```, it has
 ```
 $ tree -L 1 inventory/group_vars/
 inventory/group_vars/
@@ -80,7 +80,7 @@ inventory/group_vars/
 
 If you have inv/aws_qa for example, then create a directory named ```inventory/group_vars/aws_qa```. This is where your inventories for your QA environment will be located.
 
-Lastly, the *s9s-ansible* selects a common inventory file where you can add the general parameters, if you need to be defined. For example, your operating system user, the ssh location keys. These variables are commonly uniform in all the database nodes since it is required by ClusterControl to have the user eixst or to have it all the same for all your database nodes. See [here](https://docs.severalnines.com/docs/clustercontrol/requirements/operating-system-user/) for more info. Now, this common file is located in ```inventory/group_vars/sample_prod/sample_prod_common```. In our given example, given that you have created ```inventory/group_vars/aws_qa``` directory, do not forget to create a file i.e. ```inventory/group_vars/aws_qa/aws_qa_common```. You might likely want to copy the contents of the sample file  ```inventory/group_vars/sample_prod/sample_prod_common``` and rename it accordingly. 
+Lastly, the **s9s-ansible** selects a common inventory file where you can add the general parameters, if you need to be defined. For example, your operating system user, the ssh location keys. These variables are commonly uniform in all the database nodes since it is required by ClusterControl to have the user eixst or to have it all the same for all your database nodes. See [here](https://docs.severalnines.com/docs/clustercontrol/requirements/operating-system-user/) for more info. Now, this common file is located in ```inventory/group_vars/sample_prod/sample_prod_common```. In our given example, given that you have created ```inventory/group_vars/aws_qa``` directory, do not forget to create a file i.e. ```inventory/group_vars/aws_qa/aws_qa_common```. You might likely want to copy the contents of the sample file  ```inventory/group_vars/sample_prod/sample_prod_common``` and rename it accordingly. 
 
 
 For those who are familiar with Ansible, the ```inventory``` parameter found in the ```ansible.cfg``` just simplifies the command where you don't need anymore to provide the ```-i <location-of-inventory-file>``` option when running ```ansible-playbooks``` command.
@@ -91,7 +91,7 @@ Now that it's already setup, you are now ready to setup and run a playbook. Let'
 
 
 ## Running your ansible-playbook
-The *s9s-ansible* places the playbooks inside the playbook directory. Currently, this is how the *s9s-ansible* playbooks directory looks like:
+The **s9s-ansible** places the playbooks inside the playbook directory. Currently, this is how the **s9s-ansible** playbooks directory looks like:
 ```
 $ ~/s9s-ansible$ tree --dirsfirst playbooks/
 playbooks/
@@ -191,7 +191,7 @@ os_key_file: "/home/vagrant/.ssh/id_rsa"
 
 
 ## When running a playbook
-The *s9s-ansible* playbooks requires certain variables to be defined when running ansible-playbook. Generally, the most required variable is ```environ``` and ```deploy_id```. The variable ```environ``` poins to the type of environment. The value must coincide or sync to the assigned value you have in inv/staging (in the example above). So in the example above, the ```environ == staging```. The ```deploy_id``` variable is an inventory file itself that serve as like a token identity in order to make the ansible playbook deployment working. In that case the ```deploy_id``` value is a file that points to the designated directory based on its desired actions.
+The **s9s-ansible** playbooks requires certain variables to be defined when running ansible-playbook. Generally, the most required variable is ```environ``` and ```deploy_id```. The variable ```environ``` poins to the type of environment. The value must coincide or sync to the assigned value you have in inv/staging (in the example above). So in the example above, the ```environ == staging```. The ```deploy_id``` variable is an inventory file itself that serve as like a token identity in order to make the ansible playbook deployment working. In that case the ```deploy_id``` value is a file that points to the designated directory based on its desired actions.
 
 
 ###  Deploy a MariaDB Replication Cluster
@@ -253,7 +253,90 @@ $ ansible-playbook playbooks/add-loadbalancer-proxysql.yml -e "environ=staging d
 ```
 In this playbook, the add-loadbalancer-proxysql.yml playbook allows multiple node installation of ProxySQL which makes it effortless and efficient deployment of ProxySQL.
 
-### Deploy a HAProxy load balancer for the ProxySQL nodes
+### Deploying HAProxy load balancer for the MySQL nodes
+Using **s9s-ansible** for deploying HAProxy as your chosen load balancer supports multi-deployment feature. The multi-deployment has to be setup one at a time but it still follows the sequential approach that ClusterControl deploys in the UI. What that means is that, since the inventory shall be defined in a per-cluster basis, therefore, the multi-deployment is taken sequentially which takes one job at a time and the following jobs shall be put into pending state until the current one finishes and proceeds on the next sequence in the job list.
+
+In this example, we have already deployed the MariaDB Replication cluster, this can be verified by running the ```s9s cluster --list --long``` command. For example,
+```
+root@pupnode6:/vagrant/non-ansible-files/s9s-ansible# s9s cluster --list --long
+ID STATE   TYPE              OWNER    GROUP  NAME                   COMMENT
+79 STARTED mongodb           test_dba admins mongodb-mdbgrp         All nodes are operational.
+82 STARTED replication       test_dba admins mysql-repl5.7          All nodes are operational.
+83 STARTED postgresql_single test_dba admins postgres-c1            All nodes are operational.
+92 STARTED replication       test_dba admins mariadb-replication-c1 All nodes are operational.
+Total: 4
+```
+Wherein, the deployed cluster is named as *mariadb-replication-c1* in this example.
+
+To deploy HAProxy on its target database nodes, you just need the ```playbooks/add-loadbalancer-haproxy.yml``` playbook. Before we run this, we need to create the inventory file ```mariadb_repl_haproxy_c1``` and we have to place this in ```inventory/group_vars/staging/add_lb/``` directory. If the directory does not yet exist, please create it first as you have to make sure this is located in directory ```*/add_lb```.
+
+In your inventory file, we have the following params:
+```
+## RPC V2 compatible
+use_rpcv2: true
+cluster_name: "mariadb-replication-c1"
+cluster_type: "replication"
+proxy_type: "haproxy"
+prefix: "haproxy://"
+proxy_hosts:
+    - host: 192.168.40.58
+      ha_port: 9600
+      rw_splitting: true
+      node_type: active
+      backend_name_ro: haproxy_2208_ro
+      backend_name_rw: haproxy_2207_rw
+      node_addresses: 192.168.40.58:3306:active,192.168.40.59:3306:backup
+      lb_admin: myhaproxyAdmin
+      lb_password: myhaproxyPassword
+      disable_firewall: true
+      disable_selinux: true
+      overwrite_mysqlchk: true
+      lb_policy: leastconn
+      max_connection_be: 64
+      max_connection_fe: 8192
+      ro_port: 3308
+      rw_port: 3307
+      rw_splitting: true
+      stats_socket: /var/run/haproxy.socket
+      timeout_client: 10800
+      timeout_server: 10800
+      xinetd_allow_from: 0.0.0.0/0
+      build_from_source: false	  
+    - host: 192.168.40.59
+      ha_port: 9600
+      rw_splitting: true
+      node_type: active
+      backend_name_ro: haproxy_2208_ro
+      backend_name_rw: haproxy_2207_rw
+      node_addresses: 192.168.40.58:3306:active,192.168.40.59:3306:backup
+      lb_admin: myhaproxyAdmin
+      lb_password: myhaproxyPassword
+      disable_firewall: true
+      disable_selinux: true
+      overwrite_mysqlchk: true
+      lb_policy: leastconn
+      max_connection_be: 64
+      max_connection_fe: 8192
+      port: 9600
+      ro_port: 3308
+      rw_port: 3307
+      rw_splitting: true
+      stats_socket: /var/run/haproxy.socket
+      timeout_client: 10800
+      timeout_server: 10800
+      xinetd_allow_from: 0.0.0.0/0
+      build_from_source: false
+rpc_user: myuser
+rpc_password: myuserpass
+# RPC V2 URL should have the v2/jobs as it's sub-directory in the URL. If you need to change the URL, likely you'll change only the IP address 
+## such as your hostname or any FQDN that points to the RPC V2 running in your CC Controller host. In this example, we're using localhost.
+rpc_v2_url: https://127.0.0.1:9501/v2/jobs
+```
+This shall use the RPC V2 and shall feed the designated values to the RPC using cURL. Replace the following params to your desired value. Once you are ready, then invoke the following playbook:
+```
+$ ansible-playbook playbooks/add-loadbalancer-haproxy.yml -e "environ=staging deploy_id=mariadb_repl_haproxy_c1" -v
+```
+
 ### Create a backup for this cluster
 ### Restore a backup for this cluster
 ### Create a scheduled backup for this cluster
@@ -263,6 +346,7 @@ In this playbook, the add-loadbalancer-proxysql.yml playbook allows multiple nod
 ### Uninstall a database node (replica)
 ### Create a replica
 ### Drop the cluster
+
 
 
 

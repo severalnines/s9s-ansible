@@ -1,0 +1,104 @@
+-   name: Showing debug command using RPC V2 to deploy and install HAProxy load balancer
+    debug:
+         msg: >-
+              curl -k -XPOST "{{ rpc_v2_url }}" -d"
+              {
+                 \"cluster_id\":{{ cluster_id }},
+                 \"operation\":\"createJobInstance\",
+                 \"job\":{
+                     \"class_name\":\"CmonJobInstance\",
+                     \"job_spec\":{
+                        \"command\":\"haproxy\",
+                         \"job_data\":{
+                            \"action\":\"setupHaProxy\",
+                            \"build_from_source\":{% if proxy_hosts[retry_count|int].build_from_source|bool == true %}true{%else%}false{% endif %},
+                             \"clusterId\":\"{{ cluster_id }}\",
+                            \"disable_firewall\":{% if proxy_hosts[retry_count|int].disable_firewall|bool == true %}true{%else%}false{% endif %},
+                            \"disable_selinux\":{% if proxy_hosts[retry_count|int].disable_selinux|bool == true %}true{%else%}false{% endif %},
+                            \"node_addresses\":\"{{ proxy_hosts[retry_count|int].node_addresses }}\",
+                            \"overwrite_mysqlchk\":{% if proxy_hosts[retry_count|int].overwrite_mysqlchk|bool == true %}true{%else%}false{% endif %},
+                                \"node\":{
+                                  \"backend_name_ro\":\"{{ proxy_hosts[retry_count|int].backend_name_ro }}\",
+                                  \"backend_name_rw\":\"{{ proxy_hosts[retry_count|int].backend_name_rw }}\", 
+                                  \"hostname\":\"{{ proxy_hosts[retry_count|int].host }}\", 
+                                  \"lb_admin\":\"{{ proxy_hosts[retry_count|int].lb_admin }}\", 
+                                  \"lb_password\":\"{{ proxy_hosts[retry_count|int].lb_password }}\", 
+                                  \"lb_policy\":\"{{ proxy_hosts[retry_count|int].lb_policy }}\",
+                                  \"max_connection_be\":{{ proxy_hosts[retry_count|int].max_connection_be }},
+                                  \"max_connection_fe\":{{ proxy_hosts[retry_count|int].max_connection_fe }},
+                                  \"port\":{{ proxy_hosts[retry_count|int].ha_port }},
+                                  \"ro_port\":{{ proxy_hosts[retry_count|int].ro_port }},
+                                  \"rw_port\":{{ proxy_hosts[retry_count|int].rw_port }},
+                                  \"rw_splitting\":{% if proxy_hosts[retry_count|int].rw_splitting|bool == true %}true{%else%}false{% endif %},
+                                  \"stats_socket\":\"{{ proxy_hosts[retry_count|int].stats_socket }}\",
+                                  \"timeout_client\":{{ proxy_hosts[retry_count|int].timeout_client }},
+                                  \"timeout_server\":{{ proxy_hosts[retry_count|int].timeout_server }},
+                                  \"xinetd_allow_from\":\"{{ proxy_hosts[retry_count|int].xinetd_allow_from }}\"
+                              } 
+                        }
+                    },
+                    \"title\":\"Enable WAL Log Archiving\"
+                },
+                \"authenticate\":{
+                    \"username\":\"{{ rpc_user }}\",
+                    \"password\":\"{{ rpc_password }}\"
+                }
+              }"
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length
+
+-   name: Execute cURL using RPC V2 to deploy and install HAProxy load balancer
+    command: >-
+        curl -k -XPOST "{{ rpc_v2_url }}" -d"
+        {
+           \"cluster_id\":{{ cluster_id }},
+           \"operation\":\"createJobInstance\",
+           \"job\":{
+               \"class_name\":\"CmonJobInstance\",
+               \"job_spec\":{
+                  \"command\":\"haproxy\",
+                   \"job_data\":{
+                      \"action\":\"setupHaProxy\",
+                      \"build_from_source\":{% if proxy_hosts[retry_count|int].build_from_source|bool == true %}true{%else%}false{% endif %},
+                       \"clusterId\":\"{{ cluster_id }}\",
+                      \"disable_firewall\":{% if proxy_hosts[retry_count|int].disable_firewall|bool == true %}true{%else%}false{% endif %},
+                      \"disable_selinux\":{% if proxy_hosts[retry_count|int].disable_selinux|bool == true %}true{%else%}false{% endif %},
+                      \"node_addresses\":\"{{ proxy_hosts[retry_count|int].node_addresses }}\",
+                      \"overwrite_mysqlchk\":{% if proxy_hosts[retry_count|int].overwrite_mysqlchk|bool == true %}true{%else%}false{% endif %},
+                          \"node\":{
+                            \"backend_name_ro\":\"{{ proxy_hosts[retry_count|int].backend_name_ro }}\",
+                            \"backend_name_rw\":\"{{ proxy_hosts[retry_count|int].backend_name_rw }}\", 
+                            \"hostname\":\"{{ proxy_hosts[retry_count|int].host }}\", 
+                            \"lb_admin\":\"{{ proxy_hosts[retry_count|int].lb_admin }}\", 
+                            \"lb_password\":\"{{ proxy_hosts[retry_count|int].lb_password }}\", 
+                            \"lb_policy\":\"{{ proxy_hosts[retry_count|int].lb_policy }}\",
+                            \"max_connection_be\":{{ proxy_hosts[retry_count|int].max_connection_be }},
+                            \"max_connection_fe\":{{ proxy_hosts[retry_count|int].max_connection_fe }},
+                            \"port\":{{ proxy_hosts[retry_count|int].ha_port }},
+                            \"ro_port\":{{ proxy_hosts[retry_count|int].ro_port }},
+                            \"rw_port\":{{ proxy_hosts[retry_count|int].rw_port }},
+                            \"rw_splitting\":{% if proxy_hosts[retry_count|int].rw_splitting|bool == true %}true{%else%}false{% endif %},
+                            \"stats_socket\":\"{{ proxy_hosts[retry_count|int].stats_socket }}\",
+                            \"timeout_client\":{{ proxy_hosts[retry_count|int].timeout_client }},
+                            \"timeout_server\":{{ proxy_hosts[retry_count|int].timeout_server }},
+                            \"xinetd_allow_from\":\"{{ proxy_hosts[retry_count|int].xinetd_allow_from }}\"
+                        } 
+                  }
+              },
+              \"title\":\"Deploying HAProxy as load balancers\"
+          },
+          \"authenticate\":{
+              \"username\":\"{{ rpc_user }}\",
+              \"password\":\"{{ rpc_password }}\"
+          }
+        }"
+    args:
+        warn: false
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length
+    
+-   name: Set increments based on the number of proxy host assigned
+    set_fact:
+        retry_count: "{{ retry_count | int + 1 }}"
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length
+
+-   include_tasks: helpers/multi-node-deploy-haproxy_rpcv2.yml
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length

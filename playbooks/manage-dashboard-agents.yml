@@ -6,6 +6,9 @@
         - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
         - ../inventory/group_vars/{{ environ }}/manage/{{ deploy_id|d('') }}
     tasks:
+    -   set_fact:
+            prometheus_port: 9090
+
     -   name: Check if cluster exists
         command:
             cmd: s9s cluster --list --long
@@ -49,12 +52,12 @@
     -   name: Verifying any existing prometheus installation...
         ansible.builtin.debug:
              msg: "The host:port combination is already taken. Cannot proceed enabling dashboard agents"
-        when: cluster_id is defined and node_exist|d(false)|bool == false and disable|d(false)|bool == false
+        when: cluster_id is defined and node_exist|d(false)|bool == false and enable_dash|d(false)|bool == true
 
     -   name: Verifying prometheus if running on the specified host or node.
         ansible.builtin.debug:
              msg: "The host:port combination no longer exist. Nothing to remove or unregister."
-        when: cluster_id is defined and disable|d(false)|bool == true
+        when: cluster_id is defined and enable_dash|d(false)|bool == false
 
     -   name: Showing debug command using RPC V2 to enable dashboards/agents
         debug:
@@ -67,7 +70,7 @@
               \"scrape_interval\":\"{{ scrape_interval }}\",\"configuration\":{{ configuration }} }}},
               \"title\":\"Enabling Dashboard and Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
               \"password\":\"{{ rpc_password }}\"}}"
-        when: cluster_id|d(0)|int > 0 and disable|d(false)|bool == false
+        when: cluster_id|d(0)|int > 0 and enable_dash|d(false)|bool == true
 
     -   name: Execute s9s CLI to enable dashboards/agents
         command: >-
@@ -81,7 +84,7 @@
            \"password\":\"{{ rpc_password }}\"}}"
         args:
             warn: false
-        when: cluster_id|d(0)|int > 0 and disable|d(false)|bool == false
+        when: cluster_id|d(0)|int > 0 and enable_dash|d(false)|bool == true
 
 
     -   name: Separate the hosts via comma delimiter to allow multiple host deployments
@@ -96,12 +99,12 @@
                \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
                \"job_spec\":{\"command\":\"removenode\",
                \"job_data\":{\"clusterId\":\"{{ cluster_id }}\",
-               \"enable_uninstall\":{% if disable|d(false)|bool == true %}true{%else%}false{% endif %},
-               \"unregister_only\":{% if unregister_only|d(false)|bool == true %}true{%else%}false{% endif %},
+               \"enable_uninstall\":{% if enable_dash|d(false)|bool == false %}true{%else%}false{% endif %},
+               \"unregister_only\":{% if let_it_run_and_no_uninstall|d(false)|bool == true %}true{%else%}false{% endif %},
                \"node\":{ \"hostname\": \"{{ prometheus_host }}\", \"port\": \"{{ prometheus_port}}\" } }},
                \"title\":\"Disabling Dashboard and Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
                \"password\":\"{{ rpc_password }}\"}}"
-        when: node_exist|d(false)|bool == true and cluster_id|d(0)|int > 0 and disable|d(false)|bool == true
+        when: node_exist|d(false)|bool == true and cluster_id|d(0)|int > 0 and enable_dash|d(false)|bool == false
 
     -   name: Execute s9s CLI to disable dashboards/agents
         command: >-
@@ -109,11 +112,11 @@
            \"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",
            \"job_spec\":{\"command\":\"removenode\",
            \"job_data\":{\"clusterId\":\"{{ cluster_id }}\",
-           \"enable_uninstall\":{% if disable|d(false)|bool == true %}true{%else%}false{% endif %},
-           \"unregister_only\":{% if unregister_only|d(false)|bool == true %}true{%else%}false{% endif %},
+           \"enable_uninstall\":{% if enable_dash|d(false)|bool == false %}true{%else%}false{% endif %},
+           \"unregister_only\":{% if let_it_run_and_no_uninstall|d(false)|bool == true %}true{%else%}false{% endif %},
            \"node\":{ \"hostname\": \"{{ prometheus_host }}\", \"port\": \"{{ prometheus_port}}\" } }},
            \"title\":\"Disabling Dashboard and Agents\"},\"authenticate\":{\"username\":\"{{ rpc_user }}\",
            \"password\":\"{{ rpc_password }}\"}}"
         args:
             warn: false
-        when: node_exist|d(false)|bool == true and cluster_id|d(0)|int > 0 and disable|d(false)|bool == true
+        when: node_exist|d(false)|bool == true and cluster_id|d(0)|int > 0 and enable_dash|d(false)|bool == false

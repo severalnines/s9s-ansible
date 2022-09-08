@@ -60,11 +60,13 @@
         loop: "{{ node }}"
         when: valid_play|default(false)|bool == true
 
-    -   debug: >-
-            msg="s9s backup --create --backup-method={{ backup_method }} --nodes='{{ fixed_nodes }}'
-             --cluster-id={{ cluster_id }} --backup-dir={{ backup_directory }}
-             {% if store_on_controller|d(false)|bool == true %}--on-controller{% endif %} 
-             --backup-retention={{ backup_retention|d(31)|int }}"
+    -   name: Showing debug s9s backup command
+        debug:
+           msg: >-
+                s9s backup --create --backup-method={{ backup_method }} --nodes='{{ fixed_nodes }}'
+                --cluster-id={{ cluster_id }} --backup-dir={{ backup_directory }}
+                {% if store_on_controller|d(false)|bool == true %}--on-controller{% endif %} 
+                --backup-retention={{ backup_retention|d(31)|int }}
         when: valid_play|default(false)|bool == true
 
     -   name: Execute s9s CLI to create a cluster

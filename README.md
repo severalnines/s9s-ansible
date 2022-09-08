@@ -80,7 +80,7 @@ inventory/group_vars/
 
 If you have inv/aws_qa for example, then create a directory named ```inventory/group_vars/aws_qa```. This is where your inventories for your QA environment will be located.
 
-Lastly, the **s9s-ansible** selects a common inventory file where you can add the general parameters, if you need to be defined. For example, your operating system user, the ssh location keys. These variables are commonly uniform in all the database nodes since it is required by ClusterControl to have the user eixst or to have it all the same for all your database nodes. See [here](https://docs.severalnines.com/docs/clustercontrol/requirements/operating-system-user/) for more info. Now, this common file is located in ```inventory/group_vars/sample_prod/sample_prod_common```. In our given example, given that you have created ```inventory/group_vars/aws_qa``` directory, do not forget to create a file i.e. ```inventory/group_vars/aws_qa/aws_qa_common```. You might likely want to copy the contents of the sample file  ```inventory/group_vars/sample_prod/sample_prod_common``` and rename it accordingly. 
+Lastly, the **s9s-ansible** selects a common inventory file where you can add the general parameters, if you need to be defined. For example, your operating system user, the ssh location keys. These variables are commonly uniform in all the database nodes since it is required by ClusterControl to have the user eixst or to have it all the same for all your database nodes. See [here](https://docs.severalnines.com/docs/clustercontrol/requirements/operating-system-user/) for more info. Now, this common file is located in ```inventory/group_vars/sample_prod/sample_prod_common```. In our given example, given that you have created ```inventory/group_vars/aws_qa``` directory, do not forget to create a file i.e. ```inventory/group_vars/aws_qa/aws_qa_common```. You might likely want to copy the contents of the sample file  ```inventory/group_vars/sample_prod/sample_prod_common``` and rename it accordingly.
 
 
 For those who are familiar with Ansible, the ```inventory``` parameter found in the ```ansible.cfg``` just simplifies the command where you don't need anymore to provide the ```-i <location-of-inventory-file>``` option when running ```ansible-playbooks``` command.
@@ -268,7 +268,7 @@ Total: 4
 ```
 Wherein, the deployed cluster is named as *mariadb-replication-c1* in this example.
 
-To deploy HAProxy on its target database nodes, you just need the ```playbooks/add-loadbalancer-haproxy.yml``` playbook. Before we run this, we need to create the inventory file ```mariadb_repl_haproxy_c1``` and we have to place this in ```inventory/group_vars/staging/add_lb/``` directory. If the directory does not yet exist, please create it first as you have to make sure this is located in directory ```*/add_lb```.
+To deploy HAProxy on its target database nodes, you just need the ```playbooks/add-loadbalancer-haproxy.yml``` playbook. Before we run this, we need to create the inventory file ```mariadb_repl_haproxy_c1``` and we have to place this in ```inventory/group_vars/staging/add_lb/``` directory. If the directory does not yet exist, please create it first as you have to make sure this is located in directory ```*/add_lb```. Take note that the directories where the inventories are placed are organized based on its type of job. Since this HAProxy is treated as load balancer, then this is shall be placed in `add_lb` directory.
 
 In your inventory file, we have the following params:
 ```
@@ -301,7 +301,7 @@ proxy_hosts:
       timeout_client: 10800
       timeout_server: 10800
       xinetd_allow_from: 0.0.0.0/0
-      build_from_source: false	  
+      build_from_source: false
     - host: 192.168.40.59
       ha_port: 9600
       rw_splitting: true
@@ -328,7 +328,7 @@ proxy_hosts:
       build_from_source: false
 rpc_user: myuser
 rpc_password: myuserpass
-# RPC V2 URL should have the v2/jobs as it's sub-directory in the URL. If you need to change the URL, likely you'll change only the IP address 
+# RPC V2 URL should have the v2/jobs as it's sub-directory in the URL. If you need to change the URL, likely you'll change only the IP address
 ## such as your hostname or any FQDN that points to the RPC V2 running in your CC Controller host. In this example, we're using localhost.
 rpc_v2_url: https://127.0.0.1:9501/v2/jobs
 ```
@@ -336,17 +336,167 @@ This shall use the RPC V2 and shall feed the designated values to the RPC using 
 ```
 $ ansible-playbook playbooks/add-loadbalancer-haproxy.yml -e "environ=staging deploy_id=mariadb_repl_haproxy_c1" -v
 ```
-
 ### Create a backup for this cluster
-### Restore a backup for this cluster
+Backup management is one of the primary jobs that can be done using **s9s-ansible** scripts. In this section, we will deploy a backup using on-demand which takes the backup on the fly and is equivalent to do the on-demand capability if you have to do this action using the ClusterControl web UI.
+
+As we have shown earlier, we have the cluster named `mariadb-replication-c1` deployed. This will be our target cluster. Since the job is about backup, then we need to create the directory ```inventory/group_vars/staging/backup/```.
+
+To create the backup on-demand, we need to create the inventory and we'll name the file as `mariadb_repl_c1_xtrabackupfull` and save it to `inventory/group_vars/staging/backup/` directory. The file shall have the params and its values as shown below:
+
+```
+# cat inventory/group_vars/staging/backup/mariadb_repl_c1_mysqldump
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+backup_method: "mysqldump"
+backup_directory: /home/vagrant/backups
+store_on_controller: false
+backup_retention: 2
+node:
+    - host: 192.168.40.59
+      port: 3306
+```
+
+The inventory file itself uses mysqldump as the choosen backup method and shall have not store the backup in the controller but on the node itself. `backup_retention` param sets 2 days of retention so after threshold is lapse, backup shall be deleted. The target host is the replica so specifying the node's host and port is required.
+
+To create and perform the backup on-demand, simply run the following playbook as follows:
+```
+$ ansible-playbook playbooks/backup-create-ondemand.yml -e "environ=staging deploy_id=mariadb_repl_c1_mysqldump" -v
+```
+
 ### Create a scheduled backup for this cluster
-### Deploy dashboard or enable prometheus and its agents
-### Deploy query monitoring agents
+Creating a scheduled backup is just the same as running the backup on-demand but with slight differences. The inventory file needs to specify the schedule of the backup. In this case, the parameter named `backup_schedule` takes the value of a cron-tab scheduling [syntax format](https://www.seobility.net/en/wiki/CronJob#Structure_and_syntax_of_a_CronTab_file).
+
+To create a scheduled backup, create an inventory file, and by following our desired naming convention, let's call it `mariadb_repl_c1_mariackupfull`. This file name means it belongs to the MariaDB Replication cluster where `c1` is one of the tags or an arbitrary name for a data center, concatenated with `mariabackupfull` as the desired backup method to be used. 
+```
+# cat inventory/group_vars/staging/backup/mariadb_repl_c1_xtrabackupfull
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+backup_method: "mariabackupfull"
+backup_directory: /home/vagrant/backups
+store_on_controller: true
+backup_schedule: 10 22 * * *
+backup_retention: 2
+node:
+    - host: 192.168.40.59
+      port: 3306
+wait_log: '--wait --log'
+```
+This means that it will store on controller host, backup schedule is set to run every 22:10 with a retention of 2 days targetting host 192.168.40.59 (a replica) where the MariaDB node runs on port 3306.
+
+To execute the playbook, we'll call and run playbook `backup-create-scheduled.yml`. In this example, we'll run the command below:
+```
+$ ansible-playbook playbooks/backup-create-scheduled.yml  -e "environ=staging deploy_id=mariadb_repl_c1_xtrabackupfull" -v
+```
+### Restore a backup for this cluster
+Restoring a backup for this cluster is dependent on the backups that were made using ClusterControl. Either the backup was taken using **s9s tools**, through the ClusterControl web UI, or using this **s9s-ansible** scripts. Backups taken using ClusterControl are assigned with unique backup title, which means, restoring a backup using **s9s-ansible** requires that you should have the knowledge of the backup you are aiming to restore and to what node (target node). The node has to be part of the cluster for this backup restore job to be successful.
+
+To determine the list of backup with its backup title, simply run the `s9s backup` command as shown below:
+```
+$ s9s backup --list --long --cluster-id 92
+ID  PI CID V I STATE     OWNER    HOSTNAME      CREATED  SIZE      TITLE
+143  -  92 - F COMPLETED test_dba 192.168.40.59 01:13:22  51595297 BACKUP-143
+146  -  92 - F COMPLETED test_dba 192.168.40.59 22:10:00 132292889 BACKUP-146
+Total 2
+```
+In this example, the cluster id is 92 for which this list of backups are taken from and as the list shows, the source are coming from one origin, i.e. 192.168.40.59 (serves as a replica for this cluster). Now, we have to backup titles namely BACKUP-143 and BACKUP-146. We'll try to restore *BACKUP-146* as its latest backup to the primary/master host for this cluster, i.e. 192.168.40.58.
+
+Before proceeding, we need to create the inventory file first. Create a file named `mariadb_repl_c1_restore` and store it in `inventory/group_vars/staging/backup/` directory since this action is related to backups. The params contained for this file is simple as shown below:
+```
+$ cat inventory/group_vars/staging/backup/mariadb_repl_c1_restore
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+backup_title: BACKUP-146
+node:
+    - host: 192.168.40.58
+      port: 3306
+wait_log: '--wait --log
+```
+which means that, the `backup_title` we have assigned is *BACKUP-146* and targetting host *192.168.40.58:3306* specifically.
+
+To run the script for backup restore, simply run the playbook `backup-restore.yml` as shown below:
+```
+$ ansible-playbook playbooks/backup-restore.yml -e "environ=staging deploy_id=mariadb_repl_c1_restore" -v
+```
+
+### Enabling Dashboard (enable prometheus and its agents)
+Deploying the dashboard using **s9s-ansible** uses RPC V2 as there's no way to use **s9s-tools** install (only supported by **s9s-tools**) and uninstalling the dashboard. In this section, we'll use the deployment of dashboard. This management job allows not only to enable (deploy) or disable (uninstall) the dashboards. With installing, it will deploy all the agents to the database nodes or load balancers that are supported by ClusterControl. Uninstalling also will uninstall the agents as well as the dashboard, which install/deploys Prometheus, and unregisters it to the Prometheus.
+
+Since this can be done using **s9s-ansible** using RPC V2 by simply invoking cURL, that means `--wait --log` parameter is not supported in this playbook.
+
+First, we need to create the directory `inventory/group_vars/staging/manage` since this job is part of managing the agents (enable/disable). Then, create the inventory file and let's call it as `dashboard_mariadb_repl_c1` and save it to directory `inventory/group_vars/staging/manage`. Use this parameter contents below but make sure you modify the values according to your environment.
+```
+$ cat inventory/group_vars/staging/manage/dashboard_mariadb_repl_c1
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+enable_dash: "{{ enable |d(true) }}"
+let_it_run_and_no_uninstall: false
+data_retention: 15d
+data_retention_size: 0
+datadir:
+prometheus_host: 192.168.40.63
+scrape_interval: 10s
+# make sure when adding values to the parameters make sure you have escaped the quotes and the values are inside
+## the quotes as well.
+configuration: '[
+{
+  \"arguments\": \"\",
+  \"job\": \"node\",
+  \"scrape_interval\":\"\"
+},
+{
+  \"arguments\": \"--collect.perf_schema.eventswaits --collect.perf_schema.file_events --collect.perf_schema.file_instances --collect.perf_schema.indexiowaits --collect.perf_schema.tableiowaits --collect.perf_schema.tablelocks --collect.info_schema.tablestats --collect.info_schema.processlist --collect.binlog_size --collect.global_status --collect.global_variables --collect.info_schema.innodb_metrics --collect.slave_status --collect.info_schema.userstats\",
+  \"job\": \"mariadbd\",
+  \"scrape_interval\":\"\"
+}
+]'
+rpc_user: myuser
+rpc_password: myuserpass
+rpc_v2_url: https://127.0.0.1:9501/v2/jobs
+```
+In the params above, what's most important you can modify is the `prometheus_host`, `data_retention`, `data_retention_size`, `rpc_user`, `rpc_password`. The `configuration` is also very important if you need to add custom arguments. The `rpc_v2_url` maybe constant but in case we support hostname/IP aside from using localhost or 127.0.0.1, then you can change this as well in the future. The variable `let_it_run_and_no_uninstall` is important only during uninstalling or disabling of the dashboard. Meaning, if you set this to _true_, it will disable Prometheus and agents but allow it to run, otherwise if _false_, then it will totally remove and uninstall Prometheus and its agents/exporters. The `configuration[0].arguments.job` and `configuration[1].arguments.job` are set as values of `node` and the second `job` value depends on what type of cluster it is and its binary command to be invoked. For example, since we are using MariaDB, it uses binary `mariadbd`. For MySQL/Percona Server, it uses `mysqld`. For MongoDB, it uses `mongod`. For PostgreSQL, it uses `postgres`.
+
+The `rpc_user` and `rpc_password` are the user/password combination you have created to execute and run **s9s-tools** commands.
+
+After all params i.e. key/value pairs are set, now we're ready to execute the playbook `/manage-dashboard-agents.yml` and run the following command as follows:
+```
+$ ansible-playbook playbooks/manage-dashboard-agents.yml  -e "environ=staging deploy_id=dashboard_mariadb_repl_c1 enable=true" -v
+```
+or alternatively, you can just ignore the `enable` argument,
+```
+$ ansible-playbook playbooks/manage-dashboard-agents.yml  -e "environ=staging deploy_id=dashboard_mariadb_repl_c1" -v
+```
+If you need to uninstall it, simply specify `enable=false` which will disable the dashboard and its agents by uninstalling it in the cluster.
+```
+$ ansible-playbook playbooks/manage-dashboard-agents.yml  -e "environ=staging deploy_id=dashboard_mariadb_repl_c1 enable=false" -v
+```
+
+### Enable Query monitoring agents
+Enabling the query monitor for [MySQL](https://docs.severalnines.com/docs/clustercontrol-staging/user-guide/gui-v1/mysql/query-monitor/) and for [PostgreSQL](https://docs.severalnines.com/docs/clustercontrol-staging/user-guide/gui-v1/postgresql/query-monitor/) behaves differently. Query monitor is only supported on a limited types of clusters (MySQL and PostgreSQL variant databases only) and implements different requirements for these type of database clusters. 
+
+When you enable the query monitor, it simply deploys agents to all the database nodes that is supported by this feature. The deployment for query monitoring agents uses RPC V2 by simply invoking cURL command. In order to do this with **s9s-ansible**, we need to create the inventory file first and we name it as `querymonitor_mariadb_repl_c1`. Then save this file to `inventory/group_vars/staging/manage/` directory. Our params in this inventory file is just simple yet short and is shown below:
+```
+$ cat inventory/group_vars/staging/manage/querymonitor_mariadb_repl_c1
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+enable_qm: "{{ enable |d(true) }}"
+rpc_user: myuser
+rpc_password: myuserpass
+rpc_v2_url: https://127.0.0.1:9501/v2/jobs
+```
+All we have is declare the `cluster_name`, `cluster_type` as the main important params or variables. Then we have `rpc_user` and `rpc_password` which this playbook operates using RPC V2 by invoking cURL command. Lastly, we have the `enable_qm` variable which means to enable (**true** as the default action if not stated) or simply pass the it with false as `enable_qm=false` when running the playbook. The playbook needed for this action is `manage-query-monitor.yml`. To enable the query monitoring agents, simply run
+```
+$ ansible-playbook playbooks/manage-query-monitor.yml  -e "environ=staging deploy_id=querymonitor_mariadb_repl_c1 enable=true" -v
+```
+or alternatively, you can just ignore the `enable` argument,
+```
+$ ansible-playbook playbooks/manage-query-monitor.yml  -e "environ=staging deploy_id=querymonitor_mariadb_repl_c1 enable=true" -v
+```
+If you need to uninstall it, simply specify `enable=false` which will disable the query monitoring agents by uninstalling it in the cluster.
+```
+$ ansible-playbook playbooks/manage-query-monitor.yml  -e "environ=staging deploy_id=querymonitor_mariadb_repl_c1 enable=false" -v
+```
+
 ### Uninstall HAProxy and ProxySQL
 ### Uninstall a database node (replica)
 ### Create a replica
 ### Drop the cluster
-
-
-
-

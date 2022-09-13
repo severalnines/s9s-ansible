@@ -1,0 +1,10 @@
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+vendor: "mariadb"
+version: "10.5"
+db_nodes:
+    - host: 192.168.40.59
+      port: 3306
+      node_type: slave
+wait_log: "--wait --log"
+prefix: "mysql://"

@@ -97,6 +97,7 @@ $ ~/s9s-ansible$ tree --dirsfirst playbooks/
 playbooks/
 ├── helpers
 │   ├── multi-node-deploy-haproxy.yml
+│   ├── multi-node-deploy-haproxy_rpcv2.yml
 │   ├── multi-node-deploy-proxysql.yml
 │   ├── multi-node-remove-haproxy.yml
 │   ├── multi-node-remove-proxysql.yml
@@ -105,19 +106,16 @@ playbooks/
 │   ├── multi-node-schedule-delcluster-maintenance.yml
 │   ├── multi-node-schedule-pernode-maintenance.yml
 │   └── multi-node-unregister-node.yml
+├── add-database-node.yml
 ├── add-loadbalancer-haproxy.yml
 ├── add-loadbalancer-keepalived.yml
 ├── add-loadbalancer-postgresql-pgbouncer.yml
 ├── add-loadbalancer-proxysql.yml
-├── add-loadbalancer-replication-proxysql.yml
-├── add-node-mysql-replication.yml
 ├── backup-create-ondemand.yml
 ├── backup-create-scheduled.yml
 ├── backup-restore.yml
 ├── deploy-elasticsearch.yml
 ├── deploy-galera-cluster.yml
-├── deploy-mariadb-galera.yml
-├── deploy-mariadb-replication.yml
 ├── deploy-mongodb-rs.yml
 ├── deploy-mssql.yml
 ├── deploy-mysql-replication.yml
@@ -135,23 +133,25 @@ playbooks/
 ├── manage-wal-archiving.yml
 └── unregister-node.yml
 
-1 directory, 38 files
+1 directory, 36 files
 ```
 where all the main playbooks are located in ```playbooks/``` directory, whereas the helpers are located in ```playbooks/helpers``` directory. The s9s-ansible playbooks cannot run on itself, it depends also in the inventories. The inventories is where the user shall modify and designate the specific values to be assigned such as cluster name, hostname/ip addresses, username/password, config location, etc. In the example inventory, you'll see that these are organize into a particular directory,
 ```
 root@pupnode6:/vagrant/files/s9s-ansible# tree -L 1 -d inventory/group_vars/sample_prod/
 inventory/group_vars/sample_prod/
 ├── add_lb
+├── add_node
 ├── backup
 ├── deploy
 ├── drop_cluster
 ├── manage
 └── unregister
 
-6 directories
+7 directories
 ```
 The directories above explains the following:
 - *add_lb*. The directory for inventory files where adding of load balancers or load balancer related shall be located or placed.
+- *add_node*. The directory for inventory files where adding of nodes to existing clusters in the ClusterControl.
 - *backup*. The directory for inventory files where adding of operating and managing backup related shall be located or placed.
 - *deploy*. The directory for inventory files for deploying your database clusters
 - *drop_cluster*. The directory for inventory files related to dropping a cluster
@@ -168,9 +168,8 @@ In this section, we will do the following actions:
 - create a scheduled backup for this cluster
 - deploy dashboard or enable prometheus and its agents
 - deploy query monitoring agents
-- uninstall HAProxy and ProxySQL
-- uninstall a database node (replica)
-- create a replica
+- unregister HAProxy, ProxySQL, and database node (replica)
+- create or add a replica
 - drop the cluster
 
 Before going through the actions, here are the sample prerequisite configs we have set in this example.
@@ -496,7 +495,125 @@ If you need to uninstall it, simply specify `enable=false` which will disable th
 $ ansible-playbook playbooks/manage-query-monitor.yml  -e "environ=staging deploy_id=querymonitor_mariadb_repl_c1 enable=false" -v
 ```
 
-### Uninstall HAProxy and ProxySQL
-### Uninstall a database node (replica)
+### Unregistering a node (HAProxy, ProxySQL, replica)
+Unregistering HAProxy or ProxySQL or a database node (replica for this example) is the same approach where you apply this action using ClusterControl web UI. However, the great advantage when doing this with **s9s-ansible** is that, you can unregister multiple nodes by just specifying or listing it in the inventory file. Unlike if you do this action using ClusterControl UI, you have to deal with one node at a time and click the "Unregister Node" in the menu. That might be a hassle if you are doing multiple nodes to unregister which just helps you make the job done quicker.
+
+In this section, we have the following nodes for example:
+```
+$ s9s nodes --list --long --cluster-id 92 --batch
+soM- 10.5.17    92 mariadb-replication-c1 192.168.40.58 3306 Up and running (read-write).
+yo-- 2.4.3      92 mariadb-replication-c1 192.168.40.58 6032 Process 'proxysql' is running.
+ho-- 2.0.13     92 mariadb-replication-c1 192.168.40.58 9600 Process 'haproxy' is running.
+Ao-- 1.0.0      92 mariadb-replication-c1 192.168.40.58 4433 Process 'cmnd' is running.
+soS- 10.5.17    92 mariadb-replication-c1 192.168.40.59 3306 Up and running (read-only).
+yo-- 2.4.3      92 mariadb-replication-c1 192.168.40.59 6032 Process 'proxysql' is running.
+ho-- 2.0.13     92 mariadb-replication-c1 192.168.40.59 9600 Process 'haproxy' is running.
+Ao-- 1.0.0      92 mariadb-replication-c1 192.168.40.59 4433 Process 'cmnd' is running.
+coC- 1.9.4.5730 92 mariadb-replication-c1 192.168.40.6  9500 Up and running.
+```
+Our goal is that, we have to remove ProxySQL, HAProxy, and a replica node leaving only one node, the Primary which is the IP _192.168.40.58_ in this context.
+
+In order to do this, let's create the inventory file and named it as `mariadb_repl_c1_ha_proxy_db`, which stands for the name of the cluster, then the type of nodes to be deleted which are HAProxy, ProxySQL and a DB node. Since the action is about unregister a node, we need to save this inventory file to `inventory/group_vars/staging/unregister` directory path. Take note that the file named `mariadb_repl_c1_ha_proxy_db` shall be our given `deploy_id` value when we run the playbook later. Below are the contents of this inventoy file,
+```
+$ cat inventory/group_vars/staging/unregister/mariadb_repl_c1_ha_proxy_db
+cluster_name: "mariadb-replication-c1"
+cluster_type: "replication"
+nodes:
+    - host: 192.168.40.58
+      port: 9600
+    - host: 192.168.40.59
+      port: 9600
+    - host: 192.168.40.58
+      port: 6032
+    - host: 192.168.40.59
+      port: 6032
+    - host: 192.168.40.59
+      port: 3306
+wait_log: "--wait --log"
+uninstall: true
+```
+Let's explain a bit. First, we need to declare the `cluster_name`, its `cluster_type`, then the list of `nodes` in a dictionary format. We also specify the `uninstall` set to true which means that this will uninstall its system services used by the port. For example, port 9600 is for HAProxy, port 6032 is used by ProxySQL, and port 3306 is used by MySQL/MariaDB/Percona Server. This means that these packages shall be uninstalled. Then the `wait_log` is just an optional parameter which will print the logs and wait for every action pass to the cmon or ClusterControl using **s9s** command. Take note that `wait_log: "--wait --log"` is only applicable for **s9s** command, but not for RCP V2.
+
+Now that we're ready to go, we need to invoke the playbook `unregister-node.yml`. To do this, let's run the following command:
+```
+$ ansible-playbook playbooks/unregister-node.yml -e "environ=staging deploy_id=mariadb_repl_c1_ha_proxy_db" -v
+```
+
+If you verify via ClusterContorl web UI or through the **s9s job** command, you can determine the nodes and verify it that these are being removed.
+```
+$ s9s job --list --cluster-id=92 --show-finished --batch|tail -5
+10335 92 FINISHED test_dba admins 09:42:53            100% Remove '192.168.40.58' from the Cluster
+10336 92 FINISHED test_dba admins 09:42:59            100% Remove '192.168.40.59' from the Cluster
+10337 92 FINISHED test_dba admins 09:43:06            100% Remove '192.168.40.58' from the Cluster
+10338 92 FINISHED test_dba admins 09:43:17            100% Remove '192.168.40.59' from the Cluster
+10339 92 FINISHED test_dba admins 09:43:29            100% Remove '192.168.40.59' from the Cluster
+```
+
+Then let's verify how many nodes do we have remained in the cluster,
+```
+$ s9s nodes --list --long --cluster-id 92 --batch
+soM- 10.5.17    92 mariadb-replication-c1 192.168.40.58 3306 Up and running (read-write).
+Ao-- 1.0.0      92 mariadb-replication-c1 192.168.40.58 4433 Process 'cmnd' is running.
+Ao-- 1.0.0      92 mariadb-replication-c1 192.168.40.59 4433 Process 'cmnd' is running.
+coC- 1.9.4.5730 92 mariadb-replication-c1 192.168.40.6  9500 Up and running.
+```
+So we have the HAProxy, ProxySQL, and a replica being removed.
 ### Create a replica
+Earlier or in the previous section, we have removed the replica. In this section, we'll try to add back again that replica. Doing this in **s9s-ansible** is simple. First, we create the inventory file and we'll call it `mariadb_repl_c1_replica59`, suffixing it with _replica59_ since I am going to add a replica with IP _192.168.40.59_. Then have to save this file to ` inventory/group_vars/staging/add_node` directory. The contents for this inventory file is simple,
+```
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+vendor: "mariadb"
+version: "10.5"
+db_nodes:
+    - host: 192.168.40.59
+      port: 3306
+      node_type: slave
+wait_log: "--wait --log"
+prefix: "mysql://"
+```
+All we have to do is specify the `cluster_name`, the `cluster_type`, the `vendor` and `version` of the database based on the exisitng cluster. Then the `db_nodes` which is in a dictionary format where the subitems consist of the `host`, `port`, `node_type` which is equivalent to its role (_slave_ for this example). Then specify the `prefix` which should have the value of `mysql://`. Lastly, the `wait_log` is just an optional parameter which will print the logs and wait for the action taken.
+
+Now, let's add the replica by invoking the playbook `add-database-node.yml` as follows:
+```
+$ ansible-playbook playbooks/add-database-node.yml -e "environ=staging deploy_id=mariadb_repl_c1_replica59" -v
+```
+
+After a successfull run, verifying with **s9s nodes** command shows that the replica has been added.
+```
+$ s9s nodes --list --long --cluster-id 92 --batch
+soM- 10.5.17    92 mariadb-replication-c1 192.168.40.58 3306 Up and running (read-write).
+Ao-- 1.0.0      92 mariadb-replication-c1 192.168.40.58 4433 Process 'cmnd' is running.
+Ao-- 1.0.0      92 mariadb-replication-c1 192.168.40.59 4433 Process 'cmnd' is running.
+soS- 10.5.17    92 mariadb-replication-c1 192.168.40.59 3306 Up and running (read-only).
+coC- 1.9.4.5730 92 mariadb-replication-c1 192.168.40.6  9500 Up and running.
+```
+
 ### Drop the cluster
+Dropping the cluster in **s9s-ansible** is simple but it has to be executed very carefully as this shall remove the existing cluster within ClusterControl. That means, the monitoring for database nodes, load balancers, and others (query monitor, Prometheus agents), shall be unregistered or removed in ClusterControl. However, that's all just the caveat since dropping the cluster is the same as dropping using ClusterControl UI but just invokes **s9s cluster** command to manage the dropping of the cluster. This means that, dropping does not drop or destroy any valuable data in the database, but only unregisters it within the ClusterControl.
+
+To do this, let's create the inventory file named `mysql_repl_c1` and save this file to `inventory/group_vars/staging/drop_cluster` directory since we're dealing with dropping a cluster.
+
+The inventory file `inventory/group_vars/staging/drop_cluster/mysql_repl_c1` contains only few params to do the job done. See below:
+```
+$ cat inventory/group_vars/staging/drop_cluster/mysql_repl_c1
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
+wait_log: "--wait --log"
+remove_backups: true
+```
+What you have to make sure is specify the `cluster_name`, `cluster_type`. The `wait_log` with value `--wait --log` is optional as well as the `remove_backups` is also optional. Not specifying the `remove_backups` parameter shall default to false. 
+
+To drop the cluster, simply run the playbook `drop-cluster.yml` just like below:
+```
+$ ansible-playbook playbooks/drop-cluster.yml -e "environ=staging deploy_id=mysql_repl_c1" -v
+```
+Since it has been dropped, verifying through the list of Clusters doesn't show the `mariadb-replication-c1` clustername anymore. See below:
+```
+$ s9s cluster --list --long
+ID STATE   TYPE              OWNER    GROUP  NAME           COMMENT
+79 STARTED mongodb           test_dba admins mongodb-mdbgrp All nodes are operational.
+82 STARTED replication       test_dba admins mysql-repl5.7  All nodes are operational.
+83 STARTED postgresql_single test_dba admins postgres-c1    All nodes are operational.
+Total: 3
+```

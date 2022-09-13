@@ -1,10 +1,10 @@
--   name: Add Node To Existing Cluster | Deploy MySQL/Percona/MariaDB Replication Cluster
+-   name: Add Node To Existing Cluster | Add your databas node/replica to the existing cluster.
     hosts: "{{ environ }}"
     connection: local
     gather_facts: false
     vars_files:
         - ../inventory/group_vars/{{ environ }}/{{ environ }}_common
-        - ../inventory/group_vars/{{ environ }}/{{ environ }}_{{ vendor|default('mysql') }}_repl
+        - ../inventory/group_vars/{{ environ }}/add_node/{{ deploy_id|d('') }}
 
     tasks:
     -   set_fact:
@@ -46,7 +46,7 @@
              item[1].split()[4] is defined and item[1].split()[4]|trim == item[0].host|trim and
              item[1].split()[5] is defined and item[1].split()[5]|trim == item[0].port|default('3306')|trim
         with_nested:
-        - "{{ proxy_hosts }}"
+        - "{{ db_nodes }}"
         - "{{ node_list.stdout_lines }}"
 
     -   name: Verify if MySQL Replication Cluster nodes should fail as host and port combination exist already

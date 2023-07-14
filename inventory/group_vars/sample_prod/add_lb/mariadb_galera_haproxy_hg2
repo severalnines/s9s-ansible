@@ -1,0 +1,64 @@
+## RPC V2 compatible
+use_rpcv2: true
+cluster_name: "mariadb-10.6-cluster"
+cluster_type: "galera"
+proxy_type: "haproxy"
+prefix: "haproxy://"
+proxy_hosts:
+    - host: 192.168.40.51
+      ha_port: 9600
+      rw_splitting: true
+      node_type: active
+      backend_name_ro: haproxy_2208_ro
+      backend_name_rw: haproxy_2207_rw
+      node_addresses: 192.168.40.50:3306:active,,192.168.40.51:3306:active,192.168.40.52:3306:active
+      lb_admin: myhaproxyAdmin
+      lb_password: myhaproxyPassword
+      disable_firewall: true
+      disable_selinux: true
+      overwrite_mysqlchk: true
+      lb_policy: leastconn
+      max_connection_be: 64
+      max_connection_fe: 8192
+      ro_port: 3308
+      rw_port: 3307
+      rw_splitting: true
+      stats_socket: /var/run/haproxy.socket
+      timeout_client: 10800
+      timeout_server: 10800
+      xinetd_allow_from: 0.0.0.0/0
+      build_from_source: false	  
+    - host: 192.168.40.52
+      ha_port: 9600
+      rw_splitting: true
+      node_type: active
+      backend_name_ro: haproxy_2208_ro
+      backend_name_rw: haproxy_2207_rw
+      node_addresses: 192.168.40.50:3306:active,,192.168.40.51:3306:backup,192.168.40.52:3306:active
+      lb_admin: myhaproxyAdmin
+      lb_password: myhaproxyPassword
+      disable_firewall: true
+      disable_selinux: true
+      overwrite_mysqlchk: true
+      lb_policy: leastconn
+      max_connection_be: 64
+      max_connection_fe: 8192
+      port: 9600
+      ro_port: 3308
+      rw_port: 3307
+      rw_splitting: true
+      stats_socket: /var/run/haproxy.socket
+      timeout_client: 10800
+      timeout_server: 10800
+      xinetd_allow_from: 0.0.0.0/0  
+      build_from_source: false
+
+# s9s cluster --cluster-id=32 --add-node --nodes="haproxy://192.168.40.22:8422?backend_name_ro=haproxy_2208_ro&backend_name_rw=haproxy_2207_rw&lb_user=myhaproxyAdmin&lb_password=myhaproxyPass&rw_splitting=true&node_addresses=192.168.40.20:3306?active,192.168.40.21:3306?backup,192.168.40.22:3306?backup" --wait --log --print-request
+
+
+rpc_user: myuser
+rpc_password: myuserpass
+# RPC V2 URL should have the v2/jobs as it's sub-directory in the URL. If you need to change the URL, likely you'll change only the IP address 
+## such as your hostname or any FQDN that points to the RPC V2 running in your CC Controller host. In this example, we're using localhost.
+rpc_v2_url: https://127.0.0.1:9501/v2/jobs
+#curl -k -XPOST "https://127.0.0.1:9501/v2/jobs" -d"{\"cluster_id\":87,\"operation\":\"createJobInstance\",\"job\":{\"class_name\":\"CmonJobInstance\",\"job_spec\":{\"command\":\"setup_audit_logging\",\"job_data\":{\"action\": \"enable\",\"clusterId\": \"87\"}},\"title\":\"Setup audit Logging\"},\"authenticate\":{\"username\":\"myuser\",\"password\":\"myuserpass\"}}"

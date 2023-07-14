@@ -35,8 +35,8 @@
         set_fact:
             loadbalancer: 1
         when: >
-             item[1].split()[4] is defined and item[1].split()[4]|trim == item[0].host|trim and
-             item[1].split()[5] is defined and item[1].split()[5]|trim == item[0].port|trim
+             item[1].split()[4] is defined and item[1].split()[4]|trim == item[0].proxyhostname|trim and
+             item[1].split()[5] is defined and item[1].split()[5]|trim == item[0].proxyhostport|trim
         with_nested:
         - "{{ proxy_hosts }}"
         - "{{ node_list.stdout_lines }}"
@@ -49,10 +49,15 @@
     -   name: Set the retry count
         set_fact:
              retry_count: 0
+             retry_count_dbs: 0
+             node_addresses: ""
 
-    -   include_tasks: helpers/multi-node-deploy-proxysql.yml
+    # -   include_tasks: helpers/multi-node-deploy-proxysql.yml
+    #     when: retry_count | int < proxy_hosts|length
+
+    -   name: Including tasks helpers/multi-node-deploy-proxysql_rpcv2.yml
+        include_tasks: helpers/multi-node-deploy-proxysql_rpcv2.yml
         when: retry_count | int < proxy_hosts|length
-
 
     # -   name: Separate the hosts via comma delimiter to allow multiple host deployments
     #     set_fact:

@@ -1,14 +1,14 @@
-cluster_name: "mariadb-cluster-hg2"
-cluster_type: "galera"
+cluster_name: "mariadb-replication-c1"
+cluster_type: replication
 proxy_admin_user: "proxysql-admin"
 proxy_admin_password: "admin"
 proxy_monitor_user: "proxysql-monitor"
 proxy_monitor_password: "monitor"
 prefix: "proxysql://"
 proxy_hosts:
-    - host: 192.168.40.51
+    - host: 192.168.40.58
       port: 6032
-    - host: 192.168.40.52
+    - host: 192.168.40.59
       port: 6032
 wait_log: "--wait --log"
 

@@ -1,0 +1,5 @@
+[defaults]
+environ=staging
+
+[staging]
+127.0.0.1

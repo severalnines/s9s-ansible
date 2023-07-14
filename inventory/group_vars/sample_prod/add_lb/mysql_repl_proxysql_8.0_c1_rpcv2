@@ -1,0 +1,64 @@
+## RPC V2 compatible
+use_rpcv2: true
+prefix: "proxysql://"
+cluster_name: "mysql-8.3-latest-repl"
+cluster_type: "replication"
+proxy_hosts:
+    - proxyhostname: 192.168.40.52
+      proxyhostport: 6032
+      db_username: proxysql-paul
+      db_password: admin
+      db_database: "*.*"
+      db_privs: ALL PRIVILEGES
+      disable_firewall: true
+      disable_selinux: true
+      listening_port: 6033
+      admin_user: "proxysql-admin"
+      admin_password: admin
+      monitor_user: proxysql-monitor
+      monitor_password: "monitor"
+      use_clustering: false
+      use_rw_split: true
+      version: 2
+      database_nodes:
+        - node_hostname: 192.168.40.52
+          max_connection: 100
+          max_replication_lag: 10
+          port: 3306
+          weight: 1
+        - node_hostname: 192.168.40.53
+          max_connection: 100
+          max_replication_lag: 10
+          port: 3306
+          weight: 1
+    - proxyhostname: 192.168.40.53
+      proxyhostport: 6032
+      db_username: proxysql-paul
+      db_password: admin
+      db_database: "*.*"
+      db_privs: ALL PRIVILEGES
+      disable_firewall: true
+      disable_selinux: true
+      listening_port: 6033
+      admin_user: "proxysql-admin"
+      admin_password: admin
+      monitor_user: proxysql-monitor
+      monitor_password: "monitor"
+      use_clustering: false
+      use_rw_split: true
+      version: 2
+      database_nodes:
+        - node_hostname: 192.168.40.52
+          max_connection: 100
+          max_replication_lag: 10
+          port: 3306
+          weight: 1
+        - node_hostname: 192.168.40.53
+          max_connection: 100
+          max_replication_lag: 10
+          port: 3306
+          weight: 1
+
+rpc_user: myrpcuser
+rpc_password: myrpcpword
+rpc_v2_url: https://127.0.0.1:9501/v2/jobs

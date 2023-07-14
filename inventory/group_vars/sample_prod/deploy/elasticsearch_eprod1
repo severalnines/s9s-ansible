@@ -6,12 +6,16 @@ db_admin_user: elasticsearch
 db_admin_password: mydbP@55w0rd
 ## port cannot be customized as of this time so it's not required.
 db_nodes:
-    - host: 192.168.40.136
+    - host: 192.168.40.45
       roles: master-data
-    - host: 192.168.40.137
+    - host: 192.168.40.41
       roles: master-data
-    - host: 192.168.40.138
+    - host: 192.168.40.42
       roles: master-data
+    - host: 192.168.40.43
+      roles: data
+    - host: 192.168.40.44
+      roles: data
 # cluster_tags should be comma delimited without any space in between
 cluster_tags: "prod,es-eprod1"
 wait_log: "--wait --log"
@@ -19,4 +23,4 @@ prefix: "elastic://"
 snapshot_location: /mnt/data/backups/es-snapshot-repositories
 snapshot_repository_name: elasticsearch_snapshots
 snapshot_repo_type: fs
-snapshot_storage_host: 192.168.40.135
+snapshot_storage_host: 192.168.40.43

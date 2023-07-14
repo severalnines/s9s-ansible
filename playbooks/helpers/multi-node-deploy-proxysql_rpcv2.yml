@@ -1,0 +1,108 @@
+-   name: Including tasks helpers/multi-node-deploy-proxysql_rpcv2_dbnodes.yml
+    include_tasks: helpers/multi-node-deploy-proxysql_rpcv2_dbnodes.yml
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count_dbs | int < proxy_hosts[retry_count|int].database_nodes|length
+
+#   when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length
+
+-   name: Clean up node_addresses variable (remove trailing comma) and reset dependent variables
+    set_fact:
+       node_addresses_mapjson: "{{node_addresses[:-1] }}"
+       node_addresses: ""
+       retry_count_dbs: 0
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and node_addresses|length > 0
+
+-   name: Showing debug command using RPC V2 to deploy and install ProxySQL load balancer
+    debug:
+         msg: >-
+            curl -k -v -XPOST "{{ rpc_v2_url }}" -d"
+            {
+               \"cluster_id\":{{ cluster_id }},
+               \"operation\":\"createJobInstance\",
+               \"job\":{
+                   \"class_name\":\"CmonJobInstance\",
+                   \"job_spec\":{
+                      \"command\":\"proxysql\",
+                       \"job_data\":{
+                          \"action\":\"setupProxySql\",
+                          \"admin_password\":\"{{ proxy_hosts[retry_count|int].admin_password }}\",
+                          \"admin_user\":\"{{ proxy_hosts[retry_count|int].admin_user }}\",
+                          \"db_database\":\"{{ proxy_hosts[retry_count|int].db_database }}\",
+                          \"db_password\":\"{{ proxy_hosts[retry_count|int].db_password }}\",
+                          \"db_privs\":\"{{ proxy_hosts[retry_count|int].db_privs }}\",
+                          \"disable_firewall\":{% if proxy_hosts[retry_count|int].disable_firewall|bool == true %}true{%else%}false{% endif %},
+                          \"disable_selinux\":{% if proxy_hosts[retry_count|int].disable_selinux|bool == true %}true{%else%}false{% endif %},
+                          \"listening_port\":\"{{ proxy_hosts[retry_count|int].listening_port }}\",
+                          \"monitor_password\":\"{{ proxy_hosts[retry_count|int].monitor_password }}\",
+                          \"monitor_user\":\"{{ proxy_hosts[retry_count|int].monitor_user }}\",
+                          \"use_clustering\":{% if proxy_hosts[retry_count|int].use_clustering|bool == true %}true{%else%}false{% endif %},
+                          \"use_rw_split\":{% if proxy_hosts[retry_count|int].use_rw_split|bool == true %}true{%else%}false{% endif %},
+                          \"version\":\"{{ proxy_hosts[retry_count|int].version }}\",
+                          \"node\":{
+                                \"hostname\":\"{{ proxy_hosts[retry_count|int].proxyhostname }}\",
+                                \"port\": {{ proxy_hosts[retry_count|int].proxyhostport }}
+                         },
+                          \"node_addresses\": [{{ node_addresses_mapjson }}    ]
+                      }
+                  },
+                  \"title\":\"Adding ProxySQL Load Balancer To Cluster ID: {{ cluster_id }}\"
+              },
+              \"authenticate\":{
+                  \"username\":\"{{ rpc_user }}\",
+                  \"password\":\"{{ rpc_password }}\"
+              }
+            }"
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length
+
+
+-   name: Execute cURL using RPC V2 to deploy and install ProxySQL load balancer
+    command: >-
+        curl -k -v -XPOST "{{ rpc_v2_url }}" -d"
+        {
+           \"cluster_id\":{{ cluster_id }},
+           \"operation\":\"createJobInstance\",
+           \"job\":{
+               \"class_name\":\"CmonJobInstance\",
+               \"job_spec\":{
+                  \"command\":\"proxysql\",
+                   \"job_data\":{
+                      \"action\":\"setupProxySql\",
+                      \"admin_password\":\"{{ proxy_hosts[retry_count|int].admin_password }}\",
+                      \"admin_user\":\"{{ proxy_hosts[retry_count|int].admin_user }}\",
+                      \"db_username\":\"{{ proxy_hosts[retry_count|int].db_username }}\",
+                      \"db_password\":\"{{ proxy_hosts[retry_count|int].db_password }}\",
+                      \"db_privs\":\"{{ proxy_hosts[retry_count|int].db_privs }}\",
+                      \"db_database\":\"{{ proxy_hosts[retry_count|int].db_database }}\",
+                      \"disable_firewall\":{% if proxy_hosts[retry_count|int].disable_firewall|bool == true %}true{%else%}false{% endif %},
+                      \"disable_selinux\":{% if proxy_hosts[retry_count|int].disable_selinux|bool == true %}true{%else%}false{% endif %},
+                      \"listening_port\":\"{{ proxy_hosts[retry_count|int].listening_port }}\",
+                      \"monitor_password\":\"{{ proxy_hosts[retry_count|int].monitor_password }}\",
+                      \"monitor_user\":\"{{ proxy_hosts[retry_count|int].monitor_user }}\",
+                      \"use_clustering\":{% if proxy_hosts[retry_count|int].use_clustering|bool == true %}true{%else%}false{% endif %},
+                      \"use_rw_split\":{% if proxy_hosts[retry_count|int].use_rw_split|bool == true %}true{%else%}false{% endif %},
+                      \"version\":{{ proxy_hosts[retry_count|int].version|int }},
+                      \"node\":{
+                            \"hostname\":\"{{ proxy_hosts[retry_count|int].proxyhostname }}\",
+                            \"port\": {{ proxy_hosts[retry_count|int].proxyhostport }}
+                     },
+                      \"node_addresses\": [{{ node_addresses_mapjson }}    ]
+                  }
+              },
+              \"title\":\"Adding ProxySQL Load Balancer To Cluster ID: {{ cluster_id }}\"
+          },
+          \"authenticate\":{
+              \"username\":\"{{ rpc_user }}\",
+              \"password\":\"{{ rpc_password }}\"
+          }
+        }"
+    args:
+        warn: false
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length
+
+-   name: Set increments based on the number of proxy host assigned
+    set_fact:
+        retry_count: "{{ retry_count | int + 1 }}"
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length
+
+-   name: Including tasks helpers/multi-node-deploy-proxysql_rpcv2.yml (re-invocation)
+    include_tasks: helpers/multi-node-deploy-proxysql_rpcv2.yml
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count | int < proxy_hosts|length

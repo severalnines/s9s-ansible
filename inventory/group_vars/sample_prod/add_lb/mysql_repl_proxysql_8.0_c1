@@ -1,0 +1,19 @@
+cluster_name: "mysql-8.3-latest-repl"
+cluster_type: "replication"
+proxy_admin_user: "proxysql-admin"
+proxy_admin_password: "admin"
+proxy_monitor_user: "proxysql-monitor"
+proxy_monitor_password: "monitor"
+prefix: "proxysql://"
+proxy_hosts:
+    - host: 192.168.40.52
+      port: 6032
+    - host: 192.168.40.53
+      port: 6032
+wait_log: "--wait --log"
+
+## optional db user to add
+db_username: "proxysql-paul"
+db_password: "admin"
+db_database: "*.*"
+db_privs: "ALL PRIVILEGES"

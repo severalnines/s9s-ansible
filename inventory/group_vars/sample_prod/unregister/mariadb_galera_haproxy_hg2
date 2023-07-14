@@ -1,0 +1,7 @@
+cluster_name: "mariadb-10.6-cluster"
+cluster_type: "galera"
+nodes:
+    - host: 192.168.40.50
+      port: 9600
+wait_log: "--wait --log"
+uninstall: true

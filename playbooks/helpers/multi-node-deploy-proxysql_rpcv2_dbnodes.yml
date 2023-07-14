@@ -1,0 +1,27 @@
+-   name: Set variable for node_addresses
+    set_fact:
+        node_addresses: >-
+               {{ node_addresses }}
+               {
+                   \"hostname\":\"{{ proxy_hosts[retry_count|int].database_nodes[retry_count_dbs|int].node_hostname }}\", 
+                   \"max_connection\":\"{{ proxy_hosts[retry_count|int].database_nodes[retry_count_dbs|int].max_connection }}\", 
+                   \"max_replication_lag\":\"{{ proxy_hosts[retry_count|int].database_nodes[retry_count_dbs|int].max_replication_lag }}\", 
+                   \"port\":\"{{  proxy_hosts[retry_count|int].database_nodes[retry_count_dbs|int].port }}\",
+                   \"weight\":{{ proxy_hosts[retry_count|int].database_nodes[retry_count_dbs|int].weight }}
+               },
+
+-   name: Set variable for node_addresses | debugging message only
+    debug:
+         msg: "Nothing but just printing debug message"
+
+
+    
+-   name: Set increments based on the number of proxy host database nodes assigned
+    set_fact:
+        retry_count_dbs: "{{ retry_count_dbs | int + 1 }}"
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count_dbs | int < proxy_hosts[retry_count|int].database_nodes|length
+
+
+-   name: Including tasks helpers/multi-node-deploy-proxysql_rpcv2_dbnodes.yml (re-invocation)
+    include_tasks: helpers/multi-node-deploy-proxysql_rpcv2_dbnodes.yml
+    when: use_rpcv2|d(false)|bool == true and valid_play|d(true)|bool == true and retry_count_dbs | int < proxy_hosts[retry_count|int].database_nodes|length

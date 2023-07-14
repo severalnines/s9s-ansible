@@ -1,18 +1,17 @@
-cluster_name: "mariadb-10.6_c1"
+cluster_name: "mariadb-replication-c1"
 cluster_type: replication
 vendor: "mariadb"
-version: "10.6"
-db_admin_user: mydbadmin
+version: "10.5"
+db_admin_user: root
 db_admin_password: mydbP@55w0rd
 db_nodes:
-    - host: 192.168.40.50
+    - host: 192.168.40.58
       port: 3306
       node_type: master
-    - host: 192.168.40.51
+    - host: 192.168.40.59
       port: 3306
       node_type: slave
-      node_type: slave
 # cluster_tags should be comma delimited without any space in between
-cluster_tags: "c1"
+cluster_tags: "prod,c1-group"
 wait_log: "--wait --log"
 prefix: "mysql://"
